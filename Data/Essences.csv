@@ -1,0 +1,7 @@
+Name,DisplayName,Description,MajorAbility,StatsPerRank,UpgradeMaterialId,UpgradeCostPerRank
+HeartOfTheFallen,Heart of the Fallen God,The base camp's host still gives. +60 health per rank.,/Game/Abilities/GA_EssenceBulwark.GA_EssenceBulwark_C,"(Health=60)",ManalithShard,10
+EverflowingSpring,Everflowing Spring,A spring that was old when the realm was young. +1.5 mana regen and +25 mana per rank.,/Game/Abilities/GA_EssenceSurge.GA_EssenceSurge_C,"(ManaRegen=1.5,Mana=25)",ManalithShard,10
+HuntersInstinct,Hunter's Instinct,The realm rewards those who watch. +3% crit chance per rank.,/Game/Abilities/GA_EssenceMark.GA_EssenceMark_C,"(CritChance=0.03)",ManalithShard,10
+WildfireCore,Wildfire Core,A coal from the first fire. +6 to all primary stats per rank.,/Game/Abilities/GA_EssenceWildfire.GA_EssenceWildfire_C,"(Strength=6,Agility=6,Intellect=6)",ManalithShard,12
+WhisperOfWoods,Whisper of the Woods,The trees speak fast here. +3% haste per rank.,/Game/Abilities/GA_EssenceWhisper.GA_EssenceWhisper_C,"(Haste=0.03)",ManalithShard,10
+PatientStone,The Patient Stone,Stone outlasts everything. +25 armor and +0.5 health regen per rank.,/Game/Abilities/GA_EssenceStone.GA_EssenceStone_C,"(Armor=25,HealthRegen=0.5)",ManalithShard,10

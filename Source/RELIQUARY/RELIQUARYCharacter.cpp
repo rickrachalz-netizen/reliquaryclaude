@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "RELIQUARYCharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
@@ -12,20 +10,27 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "RELIQUARY.h"
-#include "AbilitySystemComponent.h"
+#include "RLAbilitySystemComponent.h"
 #include "RLAttributeSet.h"
+#include "RLGameplayTags.h"
+#include "RLProgressionComponent.h"
+#include "RLEquipmentComponent.h"
+#include "RLRunPowerComponent.h"
+#include "RLRunManagerSubsystem.h"
+#include "RLInteractable.h"
+#include "Engine/OverlapResult.h"
+#include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ARELIQUARYCharacter::ARELIQUARYCharacter()
 {
-
-	PrimaryActorTick.bCanEverTick = true;   // <-- add this line
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-		
+
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -39,7 +44,7 @@ ARELIQUARYCharacter::ARELIQUARYCharacter()
 	// instead of recompiling to adjust them
 	GetCharacterMovement()->JumpZVelocity = 500.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MaxWalkSpeed = 600.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -55,21 +60,28 @@ ARELIQUARYCharacter::ARELIQUARYCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// In the constructor (anywhere after Super):
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+	// GAS: the hero's ability system and full stat suite.
+	AbilitySystemComponent = CreateDefaultSubobject<URLAbilitySystemComponent>(TEXT("ASC"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 	Attributes = CreateDefaultSubobject<URLAttributeSet>(TEXT("Attributes"));
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+	// Build assembly: permanent power, gear, and temporary run boons.
+	Progression = CreateDefaultSubobject<URLProgressionComponent>(TEXT("Progression"));
+	Equipment = CreateDefaultSubobject<URLEquipmentComponent>(TEXT("Equipment"));
+	RunPower = CreateDefaultSubobject<URLRunPowerComponent>(TEXT("RunPower"));
+}
+
+UAbilitySystemComponent* ARELIQUARYCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
 }
 
 void ARELIQUARYCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
+
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -82,6 +94,28 @@ void ARELIQUARYCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ARELIQUARYCharacter::Look);
+
+		// Ability kit
+		if (PrimaryAbilityAction)
+		{
+			EnhancedInputComponent->BindAction(PrimaryAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnPrimaryAbility);
+		}
+		if (SecondaryAbilityAction)
+		{
+			EnhancedInputComponent->BindAction(SecondaryAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnSecondaryAbility);
+		}
+		if (UtilityAbilityAction)
+		{
+			EnhancedInputComponent->BindAction(UtilityAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnUtilityAbility);
+		}
+		if (SpecialAbilityAction)
+		{
+			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnSpecialAbility);
+		}
+		if (InteractAction)
+		{
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnInteract);
+		}
 	}
 	else
 	{
@@ -120,10 +154,10 @@ void ARELIQUARYCharacter::DoMove(float Right, float Forward)
 		// get forward vector
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
-		// get right vector 
+		// get right vector
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		// add movement 
+		// add movement
 		AddMovementInput(ForwardDirection, Forward);
 		AddMovementInput(RightDirection, Right);
 	}
@@ -151,23 +185,33 @@ void ARELIQUARYCharacter::DoJumpEnd()
 	StopJumping();
 }
 
-
 void ARELIQUARYCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
-	OnTakeAnyDamage.AddDynamic(this, &ARELIQUARYCharacter::HandleTakeAnyDamage);
-	InitGAS();
+	AbilitySystemComponent->OnDeath.AddDynamic(this, &ARELIQUARYCharacter::HandleDeath);
+	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(URLAttributeSet::GetMoveSpeedAttribute())
+		.AddUObject(this, &ARELIQUARYCharacter::HandleMoveSpeedChanged);
+
+	RefreshHeroBuild();
 }
 
-void ARELIQUARYCharacter::InitGAS()
+void ARELIQUARYCharacter::RefreshHeroBuild()
 {
-	// PoC shortcut: set starting values directly. We'll replace this with a
-	// proper "default attributes" GameplayEffect once we add effects.
-	Attributes->InitMaxHealth(100.f);
-	Attributes->InitHealth(100.f);
-	Attributes->InitStrength(10.f);
-	Attributes->InitIntellect(10.f);
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+
+	// Order matters: base identity first, then gear on top, then any
+	// temporary run power recorded before this map loaded.
+	Progression->RebuildHero(AbilitySystemComponent);
+	Equipment->RefreshEquipment(AbilitySystemComponent);
+	RunPower->RestoreFromRunManager(AbilitySystemComponent);
+
+	GetCharacterMovement()->MaxWalkSpeed =
+		AbilitySystemComponent->GetNumericAttribute(URLAttributeSet::GetMoveSpeedAttribute());
 }
 
 void ARELIQUARYCharacter::Tick(float Dt)
@@ -181,33 +225,96 @@ void ARELIQUARYCharacter::Tick(float Dt)
 		DoMove(SmoothedMoveInput.X, SmoothedMoveInput.Y);
 	}
 
-	if (AbilitySystemComponent && Attributes && GEngine)
+	// Passive regeneration, driven by the HealthRegen/ManaRegen attributes.
+	if (AbilitySystemComponent && Attributes && !bDying)
 	{
-		GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Green,
-			FString::Printf(TEXT("HP %.0f/%.0f | STR %.0f | INT %.0f"),
-				Attributes->GetHealth(), Attributes->GetMaxHealth(),
-				Attributes->GetStrength(), Attributes->GetIntellect()));
+		const float HealthRegen = Attributes->GetHealthRegen();
+		if (HealthRegen != 0.f && Attributes->GetHealth() < Attributes->GetMaxHealth())
+		{
+			AbilitySystemComponent->ApplyModToAttribute(
+				URLAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive, HealthRegen * Dt);
+		}
+		const float ManaRegen = Attributes->GetManaRegen();
+		if (ManaRegen != 0.f && Attributes->GetMana() < Attributes->GetMaxMana())
+		{
+			AbilitySystemComponent->ApplyModToAttribute(
+				URLAttributeSet::GetManaAttribute(), EGameplayModOp::Additive, ManaRegen * Dt);
+		}
 	}
 }
 
-void ARELIQUARYCharacter::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
+// --- Ability kit input ---
+
+void ARELIQUARYCharacter::ActivateKitAbility(FGameplayTag ActionTag)
 {
-	if (Damage <= 0.f || !Attributes)
+	if (AbilitySystemComponent && !bDying)
+	{
+		AbilitySystemComponent->TryActivateByActionTag(ActionTag);
+	}
+}
+
+void ARELIQUARYCharacter::OnPrimaryAbility()   { ActivateKitAbility(RLTags::Ability_Primary); }
+void ARELIQUARYCharacter::OnSecondaryAbility() { ActivateKitAbility(RLTags::Ability_Secondary); }
+void ARELIQUARYCharacter::OnUtilityAbility()   { ActivateKitAbility(RLTags::Ability_Utility); }
+void ARELIQUARYCharacter::OnSpecialAbility()   { ActivateKitAbility(RLTags::Ability_Special); }
+
+void ARELIQUARYCharacter::OnInteract()
+{
+	if (bDying)
 	{
 		return;
 	}
 
-	const float NewHealth = FMath::Clamp(Attributes->GetHealth() - Damage, 0.f, Attributes->GetMaxHealth());
-	Attributes->SetHealth(NewHealth);
+	// Closest interactable within reach that says yes.
+	TArray<FOverlapResult> Overlaps;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(RLInteract), false, this);
+	GetWorld()->OverlapMultiByChannel(Overlaps, GetActorLocation(), FQuat::Identity,
+		ECC_WorldDynamic, FCollisionShape::MakeSphere(InteractRange), Params);
 
-	if (NewHealth <= 0.f)
+	AActor* Best = nullptr;
+	float BestDistSq = TNumericLimits<float>::Max();
+	for (const FOverlapResult& Overlap : Overlaps)
 	{
-		Die();
+		AActor* Candidate = Overlap.GetActor();
+		if (!Candidate || !Candidate->Implements<URLInteractable>())
+		{
+			continue;
+		}
+		if (!IRLInteractable::Execute_CanInteract(Candidate, this))
+		{
+			continue;
+		}
+		const float DistSq = FVector::DistSquared(Candidate->GetActorLocation(), GetActorLocation());
+		if (DistSq < BestDistSq)
+		{
+			BestDistSq = DistSq;
+			Best = Candidate;
+		}
+	}
+
+	if (Best)
+	{
+		IRLInteractable::Execute_Interact(Best, this);
 	}
 }
 
-void ARELIQUARYCharacter::Die()
+// --- Attribute plumbing ---
+
+void ARELIQUARYCharacter::HandleMoveSpeedChanged(const FOnAttributeChangeData& Data)
 {
+	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
+}
+
+// --- Death: respawn at base camp, resources forfeit ---
+
+void ARELIQUARYCharacter::HandleDeath()
+{
+	if (bDying)
+	{
+		return;
+	}
+	bDying = true;
+
 	// Stop movement and input
 	GetCharacterMovement()->DisableMovement();
 	if (Controller)
@@ -224,4 +331,18 @@ void ARELIQUARYCharacter::Die()
 	MeshComp->SetAllBodiesSimulatePhysics(true);
 	MeshComp->SetSimulatePhysics(true);
 	MeshComp->WakeAllRigidBodies();
+
+	OnHeroDied();
+
+	// A short beat to watch the fall, then home to the fallen god.
+	GetWorldTimerManager().SetTimer(DeathTimerHandle, this, &ARELIQUARYCharacter::FinishDeath, 3.f, false);
+}
+
+void ARELIQUARYCharacter::FinishDeath()
+{
+	if (URLRunManagerSubsystem* RunManager =
+		GetGameInstance() ? GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
+	{
+		RunManager->HandleHeroDeath();
+	}
 }

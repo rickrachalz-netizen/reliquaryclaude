@@ -1,0 +1,13 @@
+Name,EnemyClass,Cost,Weight,MinZone,MinDifficulty,bBoss
+Wolf,/Game/Enemies/BP_Wolf.BP_Wolf_C,18,10,1,1,False
+GoblinMinion,/Game/Enemies/BP_Goblin.BP_Goblin_C,14,10,1,1,False
+GoblinPack,/Game/Enemies/BP_GoblinPack.BP_GoblinPack_C,40,4,2,1.5,False
+OrcBruiser,/Game/Enemies/BP_Orc.BP_Orc_C,45,6,2,1.4,False
+Necromancer,/Game/Enemies/BP_Necromancer.BP_Necromancer_C,70,4,3,1.8,False
+RisenSkeleton,/Game/Enemies/BP_Skeleton.BP_Skeleton_C,20,8,3,1.5,False
+DuskWolfPack,/Game/Enemies/BP_DuskWolf.BP_DuskWolf_C,60,5,5,2.5,False
+StormWisp,/Game/Enemies/BP_StormWisp.BP_StormWisp_C,55,5,7,3,False
+BossAlphaWolf,/Game/Enemies/BP_BossAlphaWolf.BP_BossAlphaWolf_C,0,1,1,1,True
+BossOrcWarlord,/Game/Enemies/BP_BossOrcWarlord.BP_BossOrcWarlord_C,0,1,3,1,True
+BossBoneTyrant,/Game/Enemies/BP_BossBoneTyrant.BP_BossBoneTyrant_C,0,1,5,1,True
+BossGodspawn,/Game/Enemies/BP_BossGodspawn.BP_BossGodspawn_C,0,1,8,1,True
