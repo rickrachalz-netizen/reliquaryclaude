@@ -1,0 +1,46 @@
+// RELIQUARY — native gameplay tags shared across all systems.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "NativeGameplayTags.h"
+
+namespace RLTags
+{
+	// --- Ability slots (RoR2-style four-ability kit) ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Primary);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Secondary);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Utility);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Special);
+
+	// --- Damage / combat events ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Damage);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Damage_Critical);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Killed);
+
+	// --- Character states ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Dead);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Invulnerable);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_InCombat);
+
+	// --- Classes ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Class_Warrior);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Class_Rogue);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Class_Mage);
+
+	// --- Enemy categories ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_Elite);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_Boss);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_WildGod);
+
+	// --- Gear set identifiers (set bonuses check these) ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Set_Ironwood);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Set_Feywood);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Set_GodBone);
+
+	// --- SetByCaller magnitudes ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Healing);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Mana);
+}

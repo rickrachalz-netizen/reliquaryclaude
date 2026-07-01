@@ -1,0 +1,39 @@
+Name,DisplayName,Description,ItemType,EquipSlot,Rarity,MaxStack,Stats,CantripEffect,SetTag
+OakheartTimber,Oakheart Timber,Dense heartwood from the threshold groves. The first thing every survivor learns to harvest.,Material,None,Common,99,,,
+Riverstone,Riverstone,Smooth stone sung round by the realm's cold rivers.,Material,None,Common,99,,,
+Palefiber,Palefiber,Ghost-white plant fiber that never quite stops swaying.,Material,None,Common,99,,,
+Gloomcap,Gloomcap,A fungus that drinks shadow. Alchemists prize it; everyone else avoids it.,Material,None,Uncommon,99,,,
+IronwoodBough,Ironwood Bough,Wood with the temper of steel. Blades made from it hold a killing edge.,Material,None,Uncommon,99,,,
+DuskironOre,Duskiron Ore,Ore that only surfaces where the light fails.,Material,None,Uncommon,99,,,
+FeywoodBranch,Feywood Branch,Living wood from the deep courts. It hums faintly in strong hands.,Material,None,Rare,99,,,
+Moonstone,Moonstone,A pale stone that remembers moonlight even underground.,Material,None,Rare,99,,,
+Wispsilk,Wispsilk,Thread spun from spent wisps. Lighter than breath and stronger than sinew.,Material,None,Rare,99,,,
+StormheartCrystal,Stormheart Crystal,A crystal grown in the crown of the realm where the sky never settles.,Material,None,Epic,99,,,
+GodboneSliver,Godbone Sliver,A shard pried from an empowered guardian. Only altar bosses carry them.,Material,None,Epic,99,,,
+WildGodIchor,Wild God Ichor,Luminous blood of the realm's mightiest children. Drops only at the end of the path.,Material,None,Legendary,20,,,
+ManalithShard,Manalith Shard,Crystallized excess mana. Feeds the Reliquary Shard's essences.,Material,None,Uncommon,99,,,
+OakheartSword,Oakheart Sword,A humble first blade. Everyone's story starts somewhere.,Weapon,Weapon,Common,1,"(Strength=8)",,
+OakheartShivs,Oakheart Shivs,Twin carving knives that turned out to be better at other work.,Weapon,Weapon,Common,1,"(Agility=8)",,
+OakheartStaff,Oakheart Staff,A walking stick that learned to listen to mana.,Weapon,Weapon,Common,1,"(Intellect=8)",,
+IronwoodBlade,Ironwood Blade,An edge that bites armor and keeps its temper.,Weapon,Weapon,Uncommon,1,"(Strength=18,CritDamage=0.1)",,
+IronwoodShivs,Ironwood Shivs,Paired blades balanced for fast hands.,Weapon,Weapon,Uncommon,1,"(Agility=18,CritChance=0.02)",,
+IronwoodStaff,Ironwood Staff,Duskiron banding lets it channel far more than it should.,Weapon,Weapon,Uncommon,1,"(Intellect=18,Mana=20)",,
+IronwoodHelm,Ironwood Helm,A helm carved whole from a single bough.,Armor,Head,Uncommon,1,"(Armor=25,Health=20)",,"(TagName=""Set.Ironwood"")"
+IronwoodCuirass,Ironwood Cuirass,Layered plates of tempered wood.,Armor,Chest,Uncommon,1,"(Armor=40,Health=35)",,"(TagName=""Set.Ironwood"")"
+IronwoodGreaves,Ironwood Greaves,Heavy but the weight rides well.,Armor,Legs,Uncommon,1,"(Armor=30,Health=25,MoveSpeed=10)",,"(TagName=""Set.Ironwood"")"
+IronwoodGauntlets,Ironwood Gauntlets,Knuckled gauntlets that never splinter.,Armor,Hands,Uncommon,1,"(Armor=20,Health=15,Haste=0.02)",,"(TagName=""Set.Ironwood"")"
+FeywoodBlade,Feywood Blade,The blade moves a half-beat before you do.,Weapon,Weapon,Rare,1,"(Strength=35,Haste=0.05)",,
+FeywoodShivs,Feywood Shivs,They want to be thrown. Resist.,Weapon,Weapon,Rare,1,"(Agility=35,CritChance=0.05)",,
+FeywoodStaff,Feywood Staff,Still growing leaves in the dark.,Weapon,Weapon,Rare,1,"(Intellect=35,ManaRegen=2)",,
+FeywoodCirclet,Feywood Circlet,A crown of living branches.,Armor,Head,Rare,1,"(Armor=35,Health=35,Intellect=8)",,"(TagName=""Set.Feywood"")"
+FeywoodVest,Feywood Vest,Bark that bends like cloth and stops like steel.,Armor,Chest,Rare,1,"(Armor=55,Health=55,Agility=8)",,"(TagName=""Set.Feywood"")"
+FeywoodStriders,Feywood Striders,The ground softens under every step.,Armor,Legs,Rare,1,"(Armor=45,Health=45,MoveSpeed=25)",,"(TagName=""Set.Feywood"")"
+FeywoodGrips,Feywood Grips,Warm to the touch and quick on the draw.,Armor,Hands,Rare,1,"(Armor=30,Health=25,Haste=0.04)",,"(TagName=""Set.Feywood"")"
+GodboneEdge,Godbone Edge,Forged from the guardians of the path. It remembers being worshipped.,Weapon,Weapon,Epic,1,"(Strength=60,CritDamage=0.25)",,
+GodboneFangs,Godbone Fangs,Twin fangs that drink the light around them.,Weapon,Weapon,Epic,1,"(Agility=60,CritChance=0.08)",,
+GodboneScepter,Godbone Scepter,Mana pours through it like blood through a living heart.,Weapon,Weapon,Epic,1,"(Intellect=60,Adaptability=0.01)",,
+GodboneCrown,Godbone Crown,Heavy is the head. Heavier is what it survived.,Armor,Head,Epic,1,"(Armor=55,Health=60,Strength=10,Agility=10,Intellect=10)",,"(TagName=""Set.GodBone"")"
+GodbonePlate,Godbone Plate,Ribs of a fallen god shaped to guard a smaller heart.,Armor,Chest,Epic,1,"(Armor=85,Health=95)",,"(TagName=""Set.GodBone"")"
+GodboneLegplates,Godbone Legplates,Each step lands like a promise.,Armor,Legs,Epic,1,"(Armor=70,Health=70,MoveSpeed=35)",,"(TagName=""Set.GodBone"")"
+GodboneHandguards,Godbone Handguards,Hands steady enough to end the realm's last argument.,Armor,Hands,Epic,1,"(Armor=50,Health=40,Haste=0.06,CritChance=0.03)",,"(TagName=""Set.GodBone"")"
+GloomcapDraught,Gloomcap Draught,A bitter draught that knits flesh mid-fight. Brewed at base camp; drunk on the run.,Consumable,None,Uncommon,10,,,

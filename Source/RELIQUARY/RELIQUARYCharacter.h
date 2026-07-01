@@ -1,26 +1,31 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// RELIQUARY — the player-created hero pawn. Movement stays fast and fluid
+// (Risk of Rain 2 feel); everything stat-shaped flows through GAS.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
-#include "AbilitySystemInterface.h"   // up top with other includes
-// change the class declaration to also inherit the interface:
-// class ARELIQUARYCharacter : public ACharacter, public IAbilitySystemInterface
-
+#include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "RELIQUARYCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class URLAbilitySystemComponent;
+class URLAttributeSet;
+class URLProgressionComponent;
+class URLEquipmentComponent;
+class URLRunPowerComponent;
 struct FInputActionValue;
+struct FOnAttributeChangeData;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 /**
- *  A simple player-controllable third person character
- *  Implements a controllable orbiting camera
+ *  A persistent hero on an expedition into the realm of the Wild Gods.
+ *  Third-person, dynamic camera, four-slot ability kit.
  */
 UCLASS(abstract)
 class ARELIQUARYCharacter : public ACharacter, public IAbilitySystemInterface
@@ -34,7 +39,7 @@ class ARELIQUARYCharacter : public ACharacter, public IAbilitySystemInterface
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-	
+
 protected:
 
 	/** Jump Input Action */
@@ -53,29 +58,89 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
 
+	/** Ability kit inputs (RoR2-style four slots) */
+	UPROPERTY(EditAnywhere, Category="Input|Abilities")
+	UInputAction* PrimaryAbilityAction;
+
+	UPROPERTY(EditAnywhere, Category="Input|Abilities")
+	UInputAction* SecondaryAbilityAction;
+
+	UPROPERTY(EditAnywhere, Category="Input|Abilities")
+	UInputAction* UtilityAbilityAction;
+
+	UPROPERTY(EditAnywhere, Category="Input|Abilities")
+	UInputAction* SpecialAbilityAction;
+
+	/** Use altars, crates, forges */
+	UPROPERTY(EditAnywhere, Category="Input|Abilities")
+	UInputAction* InteractAction;
+
 public:
 
 	/** Constructor */
-	ARELIQUARYCharacter();	
+	ARELIQUARYCharacter();
 
 protected:
 
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	
-
 public:
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return AbilitySystemComponent; }
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual void PossessedBy(AController* NewController) override;
 
+	/** Rebuilds permanent power + gear + run boons onto the ASC. */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Hero")
+	void RefreshHeroBuild();
+
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Hero")
+	URLProgressionComponent* GetProgression() const { return Progression; }
+
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Hero")
+	URLEquipmentComponent* GetEquipment() const { return Equipment; }
+
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Hero")
+	URLRunPowerComponent* GetRunPower() const { return RunPower; }
+
+	/** BP hook for death feedback before respawn at base camp. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Hero")
+	void OnHeroDied();
+
 protected:
-	UPROPERTY() TObjectPtr<class UAbilitySystemComponent> AbilitySystemComponent;
-	UPROPERTY() TObjectPtr<class URLAttributeSet> Attributes;
-	void InitGAS();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<URLAbilitySystemComponent> AbilitySystemComponent;
+
+	UPROPERTY()
+	TObjectPtr<URLAttributeSet> Attributes;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<URLProgressionComponent> Progression;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<URLEquipmentComponent> Equipment;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<URLRunPowerComponent> RunPower;
+
+	/** Interaction reach from the camera-facing direction, in cm. */
+	UPROPERTY(EditAnywhere, Category = "RELIQUARY|Interaction")
+	float InteractRange = 350.f;
+
+	void ActivateKitAbility(FGameplayTag ActionTag);
+	void OnPrimaryAbility();
+	void OnSecondaryAbility();
+	void OnUtilityAbility();
+	void OnSpecialAbility();
+	void OnInteract();
 
 	UFUNCTION()
-	void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+	void HandleDeath();
+
+	void HandleMoveSpeedChanged(const FOnAttributeChangeData& Data);
+	void FinishDeath();
+
+	FTimerHandle DeathTimerHandle;
+	bool bDying = false;
 
 protected:
 	FVector2D RawMoveInput;
@@ -93,8 +158,6 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
-
-	void Die();
 
 public:
 	virtual void Tick(float DeltaSeconds) override;
@@ -123,4 +186,3 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };
-

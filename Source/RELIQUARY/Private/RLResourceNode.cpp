@@ -1,0 +1,81 @@
+#include "RLResourceNode.h"
+#include "RLResourcePickup.h"
+#include "RLRunManagerSubsystem.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/DamageEvents.h"
+#include "Engine/World.h"
+
+ARLResourceNode::ARLResourceNode()
+{
+	PrimaryActorTick.bCanEverTick = false;
+	SetCanBeDamaged(true);
+
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	Mesh->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	SetRootComponent(Mesh);
+
+	PickupClass = ARLResourcePickup::StaticClass();
+}
+
+void ARLResourceNode::BeginPlay()
+{
+	Super::BeginPlay();
+	NodeHealth = MaxNodeHealth;
+}
+
+float ARLResourceNode::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent,
+	AController* EventInstigator, AActor* DamageCauser)
+{
+	const float Applied = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	if (bShattered || DamageAmount <= 0.f)
+	{
+		return Applied;
+	}
+
+	NodeHealth -= DamageAmount;
+	if (NodeHealth <= 0.f)
+	{
+		Shatter(DamageCauser);
+	}
+	else
+	{
+		OnChipped(NodeHealth / MaxNodeHealth);
+	}
+	return Applied;
+}
+
+void ARLResourceNode::Shatter(AActor* Breaker)
+{
+	bShattered = true;
+
+	UWorld* World = GetWorld();
+	if (World && MaterialItemId != NAME_None && PickupClass)
+	{
+		const int32 Yield = FMath::RandRange(MinYield, MaxYield);
+		for (int32 i = 0; i < Yield; ++i)
+		{
+			const FVector Offset(FMath::FRandRange(-60.f, 60.f), FMath::FRandRange(-60.f, 60.f), 40.f);
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			if (ARLResourcePickup* Pickup = World->SpawnActor<ARLResourcePickup>(
+				PickupClass, GetActorLocation() + Offset, FRotator::ZeroRotator, Params))
+			{
+				Pickup->ItemId = MaterialItemId;
+				Pickup->Count = 1;
+			}
+		}
+	}
+
+	// The realm feeds you: shattering the world showers excess mana.
+	if (World && ExcessManaYield > 0)
+	{
+		if (URLRunManagerSubsystem* RunManager =
+			World->GetGameInstance() ? World->GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
+		{
+			RunManager->AddExcessMana(ExcessManaYield);
+		}
+	}
+
+	OnShattered(Breaker);
+	SetLifeSpan(0.1f);
+}

@@ -1,0 +1,11 @@
+Name,ZoneIndex,DisplayName,Description,Map,Material1,Material2,Material3,UpgradeAltarCount,ResourceNodeCount,DirectorCreditRate,BossCardId
+Zone1,1,Verdant Threshold,Where the expedition first broke through. Quiet groves and the bones of old wagons.,/Game/Maps/L_Run.L_Run,OakheartTimber,Riverstone,Palefiber,3,20,3,BossAlphaWolf
+Zone2,2,The Weeping Glade,Mist hangs low here and never lifts. The trees seem to grieve.,/Game/Maps/L_Run.L_Run,OakheartTimber,Palefiber,Gloomcap,3,20,3.2,BossAlphaWolf
+Zone3,3,Riverveins,Cold rivers braid through stone channels older than any map.,/Game/Maps/L_Run.L_Run,Riverstone,IronwoodBough,Gloomcap,3,18,3.5,BossOrcWarlord
+Zone4,4,Ironwood Deep,The canopy closes overhead and the wood grows hard as iron.,/Game/Maps/L_Run.L_Run,IronwoodBough,DuskironOre,Gloomcap,3,18,3.8,BossOrcWarlord
+Zone5,5,The Sunken Court,A drowned palace of some court that ruled before the gods were wild.,/Game/Maps/L_Run.L_Run,IronwoodBough,DuskironOre,FeywoodBranch,4,16,4.2,BossBoneTyrant
+Zone6,6,Palemoon Hollows,Caverns lit by stones that remember the moon.,/Game/Maps/L_Run.L_Run,FeywoodBranch,Moonstone,DuskironOre,4,16,4.6,BossBoneTyrant
+Zone7,7,The Whispering Reach,The wind here carries voices. None of them are lying.,/Game/Maps/L_Run.L_Run,FeywoodBranch,Moonstone,Wispsilk,4,15,5,BossBoneTyrant
+Zone8,8,Stormcrown Heights,Cliffs that climb into a sky that never settles.,/Game/Maps/L_Run.L_Run,Moonstone,Wispsilk,StormheartCrystal,4,14,5.5,BossGodspawn
+Zone9,9,The Godsgrave Steps,Titanic vertebrae form a stair toward the realm's last door.,/Game/Maps/L_Run.L_Run,Wispsilk,StormheartCrystal,Moonstone,5,14,6,BossGodspawn
+Zone10,10,The Last Door,The end of the path. Something vast is waiting to be woken.,/Game/Maps/L_Run.L_Run,StormheartCrystal,Wispsilk,Moonstone,5,12,6.5,BossGodspawn
