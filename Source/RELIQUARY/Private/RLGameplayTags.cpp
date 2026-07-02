@@ -31,4 +31,6 @@ namespace RLTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage,  "SetByCaller.Damage",  "Damage magnitude passed by abilities.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Healing, "SetByCaller.Healing", "Healing magnitude passed by abilities.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Mana,    "SetByCaller.Mana",    "Mana cost/restore magnitude passed by abilities.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_WeaponSpeed, "SetByCaller.WeaponSpeed", "Weapon speed for the Classic melee swing formula.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_CastTime,    "SetByCaller.CastTime",    "Cast time for the Classic spell coefficient.");
 }

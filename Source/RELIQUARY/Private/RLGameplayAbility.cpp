@@ -54,9 +54,35 @@ void URLGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
+FGameplayEffectSpecHandle URLGameplayAbility::MakeDamageSpec(float DamageMultiplier) const
+{
+	if (!DamageEffectClass)
+	{
+		return FGameplayEffectSpecHandle();
+	}
+
+	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
+	if (SpecHandle.IsValid())
+	{
+		const float Damage = BaseDamage.GetValueAtLevel(GetAbilityLevel()) * DamageMultiplier;
+		SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_Damage, Damage);
+
+		// Classic pipeline selector: exactly one of these is present per hit.
+		if (DamageSchool == ERLDamageSchool::Physical)
+		{
+			SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_WeaponSpeed, FMath::Max(WeaponSpeed, 0.1f));
+		}
+		else
+		{
+			SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_CastTime, FMath::Max(CastTime, 0.1f));
+		}
+	}
+	return SpecHandle;
+}
+
 void URLGameplayAbility::ApplyDamageToTarget(AActor* Target, float DamageMultiplier)
 {
-	if (!Target || !DamageEffectClass)
+	if (!Target)
 	{
 		return;
 	}
@@ -68,11 +94,9 @@ void URLGameplayAbility::ApplyDamageToTarget(AActor* Target, float DamageMultipl
 		return;
 	}
 
-	FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
+	FGameplayEffectSpecHandle SpecHandle = MakeDamageSpec(DamageMultiplier);
 	if (SpecHandle.IsValid())
 	{
-		const float Damage = BaseDamage.GetValueAtLevel(GetAbilityLevel()) * DamageMultiplier;
-		SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_Damage, Damage);
 		SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 	}
 }

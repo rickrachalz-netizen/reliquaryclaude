@@ -1,5 +1,6 @@
 #include "RLEnemyDirector.h"
 #include "RLEnemyBase.h"
+#include "RLCombatFormulas.h"
 #include "RLRunManagerSubsystem.h"
 #include "RLDataSubsystem.h"
 #include "RLDataTypes.h"
@@ -16,12 +17,26 @@ void ARLEnemyDirector::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (URLRunManagerSubsystem* RunManager =
-		GetGameInstance() ? GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
+	UGameInstance* GI = GetGameInstance();
+	URLRunManagerSubsystem* RunManager = GI ? GI->GetSubsystem<URLRunManagerSubsystem>() : nullptr;
+	URLDataSubsystem* Data = GI ? GI->GetSubsystem<URLDataSubsystem>() : nullptr;
+
+	if (RunManager)
 	{
 		Rng = RunManager->MakeZoneRandomStream();
 		Rng.GenerateNewSeed();	// spawn timing may vary; layouts may not
+
+		// The zone's DirectorCreditRate scales this director's income.
+		if (Data)
+		{
+			if (const FRLZoneRow* Zone = Data->FindZone(RunManager->GetCurrentZoneIndex()))
+			{
+				ZoneCreditScale = Zone->DirectorCreditRate;
+			}
+		}
 	}
+
+	ScheduleNextWave();
 }
 
 int32 ARLEnemyDirector::GetAliveCount() const
@@ -43,33 +58,38 @@ void ARLEnemyDirector::Tick(float DeltaSeconds)
 
 	UGameInstance* GI = GetGameInstance();
 	URLRunManagerSubsystem* RunManager = GI ? GI->GetSubsystem<URLRunManagerSubsystem>() : nullptr;
-	URLDataSubsystem* Data = GI ? GI->GetSubsystem<URLDataSubsystem>() : nullptr;
-	if (!RunManager || !Data || !RunManager->IsOnRun())
+	if (!RunManager || !RunManager->IsOnRun())
 	{
 		return;
 	}
 
-	// Income: base rate from the zone, multiplied by current difficulty.
-	float CreditRate = 3.f;
-	if (const FRLZoneRow* Zone = Data->FindZone(RunManager->GetCurrentZoneIndex()))
-	{
-		CreditRate = Zone->DirectorCreditRate;
-	}
-	Credits += CreditRate * RunManager->GetDifficultyCoefficient() * DeltaSeconds;
+	// RoR2 income: credits/sec = multiplier x (1 + 0.4 x coeff). The realm
+	// pays its director better the longer you stay.
+	const float Coefficient = RunManager->GetDifficultyCoefficient();
+	Credits += RLCombat::DirectorCreditsPerSecond(CreditMultiplier * ZoneCreditScale, Coefficient) * DeltaSeconds;
 
-	TimeSinceSpend += DeltaSeconds;
-	if (TimeSinceSpend >= SpawnInterval)
+	NextWaveIn -= DeltaSeconds;
+	if (NextWaveIn <= 0.f)
 	{
-		TimeSinceSpend = 0.f;
-		TrySpend();
+		SpendWave();
+		ScheduleNextWave();
 	}
 }
 
-void ARLEnemyDirector::TrySpend()
+void ARLEnemyDirector::ScheduleNextWave()
+{
+	NextWaveIn = Rng.FRandRange(MinWaveInterval, MaxWaveInterval);
+}
+
+void ARLEnemyDirector::SpendWave()
 {
 	UGameInstance* GI = GetGameInstance();
 	URLRunManagerSubsystem* RunManager = GI->GetSubsystem<URLRunManagerSubsystem>();
 	URLDataSubsystem* Data = GI->GetSubsystem<URLDataSubsystem>();
+	if (!RunManager || !Data)
+	{
+		return;
+	}
 
 	AliveEnemies.RemoveAll([](const ARLEnemyBase* Enemy) { return !IsValid(Enemy) || Enemy->IsDead(); });
 	if (AliveEnemies.Num() >= MaxAliveEnemies)
@@ -79,51 +99,58 @@ void ARLEnemyDirector::TrySpend()
 
 	const float Difficulty = RunManager->GetDifficultyCoefficient();
 
-	// Spend in a burst until the wallet or the cap runs out.
-	int32 SafetyCounter = 8;
-	while (SafetyCounter-- > 0 && AliveEnemies.Num() < MaxAliveEnemies)
+	// RoR2 wave commitment: pick ONE affordable card and ride it.
+	const FName CardId = Data->DrawSpawnCard(
+		RunManager->GetCurrentZoneIndex(), Difficulty, Credits, Rng);
+	if (CardId == NAME_None)
 	{
-		const FName CardId = Data->DrawSpawnCard(
-			RunManager->GetCurrentZoneIndex(), Difficulty, Credits, Rng);
-		if (CardId == NAME_None)
-		{
-			break;
-		}
+		return;	// can't afford anything yet; keep saving
+	}
 
-		const FRLSpawnCardRow* Card = Data->FindSpawnCard(CardId);
-		UClass* EnemyClass = Card ? Card->EnemyClass.LoadSynchronous() : nullptr;
-		if (!Card || !EnemyClass)
-		{
-			break;
-		}
+	const FRLSpawnCardRow* Card = Data->FindSpawnCard(CardId);
+	UClass* EnemyClass = Card ? Card->EnemyClass.LoadSynchronous() : nullptr;
+	if (!Card || !EnemyClass)
+	{
+		return;
+	}
 
-		// Elite promotion grows more likely as the run drags on.
-		const float EliteChance = FMath::Clamp((Difficulty - 1.5f) * 0.08f, 0.f, 0.3f);
-		const bool bElite = Rng.FRand() < EliteChance && Credits >= Card->Cost * EliteCostMultiplier;
-		const float Cost = bElite ? Card->Cost * EliteCostMultiplier : Card->Cost;
-		if (Credits < Cost)
-		{
-			break;
-		}
+	// Elite promotion: the whole wave upgrades if the wallet supports 6x.
+	float UnitCost = Card->Cost;
+	bool bEliteWave = false;
+	if (Credits >= Card->Cost * RLCombat::EliteCostMultiplier && Rng.FRand() < EliteWaveChance)
+	{
+		bEliteWave = true;
+		UnitCost = Card->Cost * RLCombat::EliteCostMultiplier;
+	}
 
+	// Spend until broke, capped per wave and by the alive limit.
+	int32 SpawnedThisWave = 0;
+	while (Credits >= UnitCost
+		&& SpawnedThisWave < MaxSpawnsPerWave
+		&& AliveEnemies.Num() < MaxAliveEnemies)
+	{
 		FVector SpawnLocation;
 		if (!FindSpawnPoint(SpawnLocation))
 		{
 			break;
 		}
 
-		FActorSpawnParameters Params;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		ARLEnemyBase* Enemy = GetWorld()->SpawnActor<ARLEnemyBase>(
-			EnemyClass, SpawnLocation, FRotator(0.f, Rng.FRandRange(0.f, 360.f), 0.f), Params);
+		const FTransform SpawnTransform(FRotator(0.f, Rng.FRandRange(0.f, 360.f), 0.f), SpawnLocation);
+		ARLEnemyBase* Enemy = GetWorld()->SpawnActorDeferred<ARLEnemyBase>(
+			EnemyClass, SpawnTransform, /*Owner=*/nullptr, /*Instigator=*/nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 		if (!Enemy)
 		{
 			break;
 		}
 
-		Enemy->bElite = bElite;
-		Credits -= Cost;
+		// Deferred spawn so bElite is set before BeginPlay scales stats.
+		Enemy->bElite = bEliteWave;
+		Enemy->FinishSpawning(SpawnTransform);
+
+		Credits -= UnitCost;
 		AliveEnemies.Add(Enemy);
+		++SpawnedThisWave;
 	}
 }
 

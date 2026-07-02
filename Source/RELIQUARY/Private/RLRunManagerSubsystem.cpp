@@ -1,4 +1,5 @@
 #include "RLRunManagerSubsystem.h"
+#include "RLCombatFormulas.h"
 #include "RLDataSubsystem.h"
 #include "RLDataTypes.h"
 #include "RLGameInstance.h"
@@ -127,7 +128,9 @@ float URLRunManagerSubsystem::GetRunSeconds() const
 
 float URLRunManagerSubsystem::GetDifficultyCoefficient() const
 {
-	return RLBalance::DifficultyCoefficient(GetRunSeconds(), CurrentZoneIndex);
+	// Risk of Rain 2's stopwatch: time drives it up smoothly, each cleared
+	// zone multiplies it by 1.15 — so lingering AND rushing both cost you.
+	return RLCombat::DifficultyCoefficient(GetRunSeconds(), ZonesCleared);
 }
 
 FRandomStream URLRunManagerSubsystem::MakeZoneRandomStream() const

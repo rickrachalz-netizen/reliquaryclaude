@@ -1,4 +1,5 @@
-// RELIQUARY — the one damage formula for everything in the game.
+// RELIQUARY — the one damage formula for everything in the game,
+// modeled on Classic World of Warcraft.
 
 #pragma once
 
@@ -7,16 +8,25 @@
 #include "RLDamageExecution.generated.h"
 
 /**
- * Damage pipeline (kept deliberately simple and legible):
+ * Classic WoW damage pipeline (see RLCombatFormulas.h for the math):
  *
- *   Base       = SetByCaller.Damage (from the ability)
- *   Stat scale = 1 + HighestPrimaryStat / 100
- *   Adapt      = 1 + Adaptability * AdaptabilityStacks   (max 5 stacks)
- *   Crit       = CritDamage multiplier on a CritChance roll
- *   Mitigation = 1 - Armor / (Armor + 300)
+ * PHYSICAL (SetByCaller.WeaponSpeed present):
+ *   AP         = Str x2 (Warrior/default) or Str + Agi (Rogue)
+ *   Swing      = WeaponDamage + AP/14 x WeaponSpeed
+ *   Crit       = 5% base (class CSV) + gear + 1% per 20 Agility -> x2.0
+ *   Mitigation = Armor / (Armor + 400 + 85 x AttackerLevel), cap 75%
  *
- * Result is written to the target's IncomingDamage meta attribute, which
- * URLAttributeSet converts into a Health loss and death handling.
+ * SPELL (SetByCaller.CastTime present):
+ *   SpellPower = Intellect (RELIQUARY adaptation) + gear
+ *   Hit        = Base + SpellPower x (CastTime / 3.5)
+ *   Crit       = 5% base + gear + 1% per 60 Intellect -> x1.5
+ *   Ignores armor entirely.
+ *
+ * Adaptability (our signature stat) multiplies either school afterward:
+ * x(1 + Adaptability x stacks), up to five stacks of varied play.
+ *
+ * Result lands on the target's IncomingDamage meta attribute, which
+ * URLAttributeSet converts into Health loss and death handling.
  */
 UCLASS()
 class RELIQUARY_API URLDamageExecution : public UGameplayEffectExecutionCalculation

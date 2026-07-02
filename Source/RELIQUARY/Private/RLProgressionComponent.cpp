@@ -4,7 +4,22 @@
 #include "RLDataTypes.h"
 #include "RLStatLibrary.h"
 #include "RLGameplayAbility.h"
+#include "RLGameplayTags.h"
 #include "AbilitySystemComponent.h"
+
+namespace
+{
+	FGameplayTag ClassTagFor(ERLHeroClass HeroClass)
+	{
+		switch (HeroClass)
+		{
+		case ERLHeroClass::Warrior: return RLTags::Class_Warrior;
+		case ERLHeroClass::Rogue:   return RLTags::Class_Rogue;
+		case ERLHeroClass::Mage:    return RLTags::Class_Mage;
+		default:                    return FGameplayTag();
+		}
+	}
+}
 
 void URLProgressionComponent::RebuildHero(UAbilitySystemComponent* ASC)
 {
@@ -21,6 +36,14 @@ void URLProgressionComponent::RebuildHero(UAbilitySystemComponent* ASC)
 	if (!Hero || !Data)
 	{
 		return;
+	}
+
+	// Class identity tag: the Classic-WoW damage execution reads this to
+	// pick the attack power ratio (Warrior Str x2, Rogue Str + Agi).
+	const FGameplayTag ClassTag = ClassTagFor(Hero->HeroClass);
+	if (ClassTag.IsValid() && !ASC->HasMatchingGameplayTag(ClassTag))
+	{
+		ASC->AddLooseGameplayTag(ClassTag);
 	}
 
 	const FRLClassRow* ClassRow = Data->FindClass(Hero->HeroClass);

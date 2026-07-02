@@ -1,6 +1,7 @@
 #include "RLEnemyBase.h"
 #include "RLAbilitySystemComponent.h"
 #include "RLAttributeSet.h"
+#include "RLCombatFormulas.h"
 #include "RLDamageEffect.h"
 #include "RLGameplayTags.h"
 #include "RLGameInstance.h"
@@ -32,21 +33,24 @@ void ARLEnemyBase::BeginPlay()
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	AbilitySystemComponent->AddLooseGameplayTag(RLTags::Enemy);
 
-	// Scale with the run: the world grows steadily more lethal over time.
+	// Risk of Rain 2 scaling: the difficulty coefficient sets an ambient
+	// monster level, and monsters gain +30% HP / +20% damage per level.
 	float Difficulty = 1.f;
 	if (URLRunManagerSubsystem* RunManager =
 		GetGameInstance() ? GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
 	{
 		Difficulty = RunManager->GetDifficultyCoefficient();
 	}
+	ScaledLevel = RLCombat::AmbientLevel(Difficulty);
 
-	float HealthMult = Difficulty;
-	float DamageMult = FMath::Sqrt(Difficulty);	// damage scales gentler than HP
+	float HealthMult = RLCombat::MonsterHealthMultiplier(ScaledLevel);
+	float DamageMult = RLCombat::MonsterDamageMultiplier(ScaledLevel);
 
 	if (bElite)
 	{
-		HealthMult *= 3.f;
-		DamageMult *= 1.5f;
+		// RoR2 tier-1 elite: the director paid 6x for 4x HP and 2x damage.
+		HealthMult *= RLCombat::EliteHealthMultiplier;
+		DamageMult *= RLCombat::EliteDamageMultiplier;
 		AbilitySystemComponent->AddLooseGameplayTag(RLTags::Enemy_Elite);
 		if (DropItemId == NAME_None)
 		{
@@ -66,7 +70,7 @@ void ARLEnemyBase::BeginPlay()
 	const float MaxHealth = BaseHealth * HealthMult;
 	Attributes->InitMaxHealth(MaxHealth);
 	Attributes->InitHealth(MaxHealth);
-	Attributes->InitStrength(BaseDamage * DamageMult);	// feeds the damage formula
+	Attributes->InitStrength(BaseDamage * DamageMult);	// AP source for the WoW swing formula
 	Attributes->InitArmor(BaseArmor);
 	Attributes->InitCritChance(0.f);
 	Attributes->InitCritDamage(2.f);
@@ -90,13 +94,17 @@ void ARLEnemyBase::DealTouchDamage(AActor* Target)
 		return;
 	}
 
+	// Enemy strikes ride the same Classic pipeline as hero melee: the spec
+	// level feeds the armor formula (85 x AttackerLevel term), so the same
+	// armor mitigates less against deep-run monsters.
 	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
 	Context.AddInstigator(this, this);
 	FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(
-		URLDamageEffect::StaticClass(), 1.f, Context);
+		URLDamageEffect::StaticClass(), FMath::Max(ScaledLevel, 1.f), Context);
 	if (Spec.IsValid())
 	{
 		Spec.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_Damage, BaseDamage);
+		Spec.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_WeaponSpeed, TouchAttackSpeed);
 		AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
 	}
 }

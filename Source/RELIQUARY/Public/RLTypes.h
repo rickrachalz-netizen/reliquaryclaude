@@ -212,15 +212,6 @@ namespace RLBalance
 		return static_cast<int64>(100.0 * FMath::Pow(1.35, static_cast<double>(Level - 1)));
 	}
 
-	/**
-	 * Run difficulty coefficient, Risk of Rain 2 style: creeps up with time
-	 * and jumps with each zone transition. Feeds enemy HP/damage multipliers
-	 * and director credit income.
-	 */
-	FORCEINLINE float DifficultyCoefficient(float RunSeconds, int32 ZoneIndex)
-	{
-		const float TimeFactor = 1.f + (RunSeconds / 60.f) * 0.08f;	// +8% per minute
-		const float ZoneFactor = FMath::Pow(1.20f, static_cast<float>(FMath::Max(ZoneIndex - 1, 0)));	// +20% per zone
-		return TimeFactor * ZoneFactor;
-	}
+	// The run difficulty coefficient uses Risk of Rain 2's stopwatch formula —
+	// see RLCombat::DifficultyCoefficient in RLCombatFormulas.h.
 }

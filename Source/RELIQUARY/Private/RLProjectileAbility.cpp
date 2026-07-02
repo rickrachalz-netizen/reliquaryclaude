@@ -12,6 +12,11 @@ URLProjectileAbility::URLProjectileAbility()
 	ProjectileClass = ARLProjectile::StaticClass();
 	BaseDamage.Value = 14.f;
 	ManaCost = 5.f;
+
+	// The Mage's bolt is a Classic spell: SpellPower x CastTime/3.5,
+	// 1.5x crits, ignores armor.
+	DamageSchool = ERLDamageSchool::Spell;
+	CastTime = 1.5f;
 }
 
 void URLProjectileAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -41,12 +46,7 @@ void URLProjectileAbility::ActivateAbility(const FGameplayAbilitySpecHandle Hand
 
 		if (ARLProjectile* Projectile = Avatar->GetWorld()->SpawnActor<ARLProjectile>(ProjectileClass, SpawnLoc, AimRot, Params))
 		{
-			FGameplayEffectSpecHandle Spec = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
-			if (Spec.IsValid())
-			{
-				Spec.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_Damage, BaseDamage.GetValueAtLevel(GetAbilityLevel()));
-			}
-			Projectile->DamageSpec = Spec;
+			Projectile->DamageSpec = MakeDamageSpec();
 			Projectile->WorldDamage = BaseDamage.GetValueAtLevel(GetAbilityLevel());
 		}
 	}

@@ -43,4 +43,10 @@ namespace RLTags
 	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage);
 	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Healing);
 	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Mana);
+
+	/** WoW-style damage pipeline inputs: exactly one of these is set per hit.
+	 *  WeaponSpeed > 0 -> melee swing (AP/14 x speed); CastTime > 0 -> spell
+	 *  (SpellPower x CastTime/3.5). */
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_WeaponSpeed);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_CastTime);
 }

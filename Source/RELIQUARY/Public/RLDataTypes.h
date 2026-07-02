@@ -225,9 +225,9 @@ struct FRLZoneRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Zone")
 	int32 ResourceNodeCount = 18;
 
-	/** Director credits per second at difficulty 1.0. */
+	/** Income scale for this zone's enemy directors (1.0 = baseline). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Zone")
-	float DirectorCreditRate = 3.f;
+	float DirectorCreditRate = 1.f;
 
 	/** Spawn-card row (DT_SpawnCards) for this zone's challenge-altar boss. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Zone")

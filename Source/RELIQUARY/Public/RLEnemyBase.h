@@ -41,6 +41,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Enemy")
 	float BaseMoveSpeed = 450.f;
 
+	/** Swing speed fed to the Classic melee formula for touch damage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Enemy")
+	float TouchAttackSpeed = 2.f;
+
 	// --- Rewards ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Rewards")
@@ -76,6 +80,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Enemy")
 	bool IsDead() const { return bDead; }
 
+	/** RoR2 ambient monster level this enemy spawned at. */
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Enemy")
+	float GetScaledLevel() const { return ScaledLevel; }
+
 	/** BP hook for death VFX/dissolve before the ragdoll is cleaned up. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Enemy")
 	void OnDied(AActor* Killer);
@@ -90,6 +98,7 @@ protected:
 	TObjectPtr<URLAttributeSet> Attributes;
 
 	bool bDead = false;
+	float ScaledLevel = 1.f;
 
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamager;
