@@ -29,14 +29,21 @@ Paths are configured in `Config/DefaultGame.ini` under `[/Script/RELIQUARY.RLDat
 
 ## 3. Reparent the existing Blueprints (required)
 
-Open each asset → File → Reparent Blueprint:
+> **Naming note:** In C++ these classes carry Unreal's type prefix — `U` for UObject classes, `A` for Actor classes. The editor's class picker **strips that prefix**, so `URLGameInstance` appears as **`RLGameInstance`**, `ARLResourceNode` appears as **`RLResourceNode`**, and so on. Search for the name *without* the leading `U`/`A`. The **Editor name** column below is exactly what you type in the picker.
 
-- `Content/BP_RLGameInstance` → **`URLGameInstance`** (`RLGameInstance`)
-- `Content/UI/WBP_RunHUD2` (or `WBP_RunHUD`) → **`URLRunHUDWidget`** — then bind its text/progress widgets to the `Get*` pure functions
-- `Content/Resources/BP_ResourceNode`, `BP_Tree`, `BP_Stone` etc. → **`ARLResourceNode`** (set `MaterialItemId` per blueprint, e.g. `OakheartTimber` on trees, `Riverstone` on rocks)
-- `Content/Resources/BP_ResourcePickup` → **`ARLResourcePickup`**
-- `Content/Maps/BP_RunPortal` → **`ARLEmbarkPortal`**
-- `Content/Maps/BP_ExtractPoint` → can be retired; extraction now flows through `ARLChallengeAltar`
+Open each asset → File → Reparent Blueprint, then pick the editor name:
+
+| Blueprint | Editor name to pick | C++ class |
+|---|---|---|
+| `Content/BP_RLGameInstance` | `RLGameInstance` | `URLGameInstance` |
+| `Content/UI/WBP_RunHUD2` (or `WBP_RunHUD`) | `RLRunHUDWidget` | `URLRunHUDWidget` |
+| `Content/Resources/BP_ResourceNode`, `BP_Tree`, `BP_Stone`, etc. | `RLResourceNode` | `ARLResourceNode` |
+| `Content/Resources/BP_ResourcePickup` | `RLResourcePickup` | `ARLResourcePickup` |
+| `Content/Maps/BP_RunPortal` | `RLEmbarkPortal` | `ARLEmbarkPortal` |
+
+- On `WBP_RunHUD`: bind its text/progress widgets to the `Get*` pure functions.
+- On the resource nodes: set `MaterialItemId` per blueprint (e.g. `OakheartTimber` on trees, `Riverstone` on rocks).
+- `Content/Maps/BP_ExtractPoint` can be retired; extraction now flows through the challenge altar (`RLChallengeAltar`).
 
 ## 4. World Settings per map (required)
 
