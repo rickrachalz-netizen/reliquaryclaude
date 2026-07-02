@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "ScalableFloat.h"
 #include "RLGameplayAbility.generated.h"
 
 /**
