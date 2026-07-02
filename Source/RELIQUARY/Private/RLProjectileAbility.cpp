@@ -13,10 +13,9 @@ URLProjectileAbility::URLProjectileAbility()
 	BaseDamage.Value = 14.f;
 	ManaCost = 5.f;
 
-	// The Mage's bolt is a Classic spell: SpellPower x CastTime/3.5,
-	// 1.5x crits, ignores armor.
+	// The Mage's bolt: spell school scales off Intellect and ignores armor.
 	DamageSchool = ERLDamageSchool::Spell;
-	CastTime = 1.5f;
+	PowerCoefficient = 0.9f;
 }
 
 void URLProjectileAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

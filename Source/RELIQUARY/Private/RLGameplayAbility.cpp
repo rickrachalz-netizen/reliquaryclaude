@@ -67,15 +67,11 @@ FGameplayEffectSpecHandle URLGameplayAbility::MakeDamageSpec(float DamageMultipl
 		const float Damage = BaseDamage.GetValueAtLevel(GetAbilityLevel()) * DamageMultiplier;
 		SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_Damage, Damage);
 
-		// Classic pipeline selector: exactly one of these is present per hit.
-		if (DamageSchool == ERLDamageSchool::Physical)
-		{
-			SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_WeaponSpeed, FMath::Max(WeaponSpeed, 0.1f));
-		}
-		else
-		{
-			SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_CastTime, FMath::Max(CastTime, 0.1f));
-		}
+		// School selector: exactly one coefficient tag is present per hit.
+		const FGameplayTag& CoefficientTag = DamageSchool == ERLDamageSchool::Physical
+			? RLTags::SetByCaller_PhysicalCoefficient
+			: RLTags::SetByCaller_SpellCoefficient;
+		SpecHandle.Data->SetSetByCallerMagnitude(CoefficientTag, FMath::Max(PowerCoefficient, 0.f) * DamageMultiplier);
 	}
 	return SpecHandle;
 }
@@ -109,6 +105,13 @@ float URLGameplayAbility::GetHastedDuration(float BaseSeconds) const
 		return BaseSeconds;
 	}
 
-	const float Haste = ASC->GetNumericAttribute(URLAttributeSet::GetHasteAttribute());
+	float Haste = ASC->GetNumericAttribute(URLAttributeSet::GetHasteAttribute());
+
+	// Hatred: staying on one target keeps your cooldowns rolling faster.
+	if (const URLAbilitySystemComponent* RLASC = Cast<const URLAbilitySystemComponent>(ASC))
+	{
+		Haste += RLASC->GetHatredHasteBonus();
+	}
+
 	return BaseSeconds / FMath::Max(1.f + Haste, 0.1f);
 }

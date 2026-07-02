@@ -37,25 +37,36 @@ struct FRLStatBlock
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Armor = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float MoveSpeed = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Adaptability = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Multistrike = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Hatred = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Sanguination = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Force = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Synergy = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats") float Frenzy = 0.f;
 
 	bool IsEmpty() const
 	{
 		return Health == 0.f && Mana == 0.f && HealthRegen == 0.f && ManaRegen == 0.f
 			&& Strength == 0.f && Agility == 0.f && Intellect == 0.f
 			&& CritChance == 0.f && CritDamage == 0.f && Haste == 0.f
-			&& Armor == 0.f && MoveSpeed == 0.f && Adaptability == 0.f;
+			&& Armor == 0.f && MoveSpeed == 0.f && Adaptability == 0.f
+			&& Multistrike == 0.f && Hatred == 0.f && Sanguination == 0.f
+			&& Force == 0.f && Synergy == 0.f && Frenzy == 0.f;
 	}
 
 	FRLStatBlock operator*(float Scale) const
 	{
 		FRLStatBlock Out;
-		Out.Health = Health * Scale;           Out.Mana = Mana * Scale;
-		Out.HealthRegen = HealthRegen * Scale; Out.ManaRegen = ManaRegen * Scale;
-		Out.Strength = Strength * Scale;       Out.Agility = Agility * Scale;
-		Out.Intellect = Intellect * Scale;     Out.CritChance = CritChance * Scale;
-		Out.CritDamage = CritDamage * Scale;   Out.Haste = Haste * Scale;
-		Out.Armor = Armor * Scale;             Out.MoveSpeed = MoveSpeed * Scale;
-		Out.Adaptability = Adaptability * Scale;
+		Out.Health = Health * Scale;             Out.Mana = Mana * Scale;
+		Out.HealthRegen = HealthRegen * Scale;   Out.ManaRegen = ManaRegen * Scale;
+		Out.Strength = Strength * Scale;         Out.Agility = Agility * Scale;
+		Out.Intellect = Intellect * Scale;       Out.CritChance = CritChance * Scale;
+		Out.CritDamage = CritDamage * Scale;     Out.Haste = Haste * Scale;
+		Out.Armor = Armor * Scale;               Out.MoveSpeed = MoveSpeed * Scale;
+		Out.Adaptability = Adaptability * Scale; Out.Multistrike = Multistrike * Scale;
+		Out.Hatred = Hatred * Scale;             Out.Sanguination = Sanguination * Scale;
+		Out.Force = Force * Scale;               Out.Synergy = Synergy * Scale;
+		Out.Frenzy = Frenzy * Scale;
 		return Out;
 	}
 };

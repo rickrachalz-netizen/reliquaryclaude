@@ -27,6 +27,12 @@ namespace
 			{ &FRLStatBlock::Armor,        &URLAttributeSet::GetArmorAttribute },
 			{ &FRLStatBlock::MoveSpeed,    &URLAttributeSet::GetMoveSpeedAttribute },
 			{ &FRLStatBlock::Adaptability, &URLAttributeSet::GetAdaptabilityAttribute },
+			{ &FRLStatBlock::Multistrike,  &URLAttributeSet::GetMultistrikeAttribute },
+			{ &FRLStatBlock::Hatred,       &URLAttributeSet::GetHatredAttribute },
+			{ &FRLStatBlock::Sanguination, &URLAttributeSet::GetSanguinationAttribute },
+			{ &FRLStatBlock::Force,        &URLAttributeSet::GetForceAttribute },
+			{ &FRLStatBlock::Synergy,      &URLAttributeSet::GetSynergyAttribute },
+			{ &FRLStatBlock::Frenzy,       &URLAttributeSet::GetFrenzyAttribute },
 		};
 		return Mappings;
 	}

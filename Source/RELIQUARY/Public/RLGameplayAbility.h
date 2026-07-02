@@ -7,13 +7,13 @@
 #include "ScalableFloat.h"
 #include "RLGameplayAbility.generated.h"
 
-/** Which half of the Classic WoW damage pipeline a hit uses. */
+/** Which power stat a hit scales from, and whether armor applies. */
 UENUM(BlueprintType)
 enum class ERLDamageSchool : uint8
 {
-	/** Weapon damage + AP/14 x WeaponSpeed; mitigated by armor. */
+	/** Scales from attack power; mitigated by armor. */
 	Physical,
-	/** Base + SpellPower x (CastTime / 3.5); ignores armor. */
+	/** Scales from spell power; ignores armor. */
 	Spell
 };
 
@@ -22,9 +22,10 @@ enum class ERLDamageSchool : uint8
  * Secondary/Utility/Special). On activation the tag is reported to the
  * owning URLAbilitySystemComponent so Adaptability stacks can build.
  *
- * Damage follows Classic WoW: BaseDamage is the weapon/spell base roll,
- * then attack power (or the spell coefficient), crit, Adaptability, and
- * the victim's armor shape the final number in URLDamageExecution.
+ * Damage is coefficient-based, Risk of Rain 2 style: a hit deals
+ * BaseDamage + PowerCoefficient x Power, then the proc suite (crit,
+ * Adaptability, Sanguination, Multistrike...) and the victim's armor
+ * shape the final number in URLDamageExecution.
  */
 UCLASS(Abstract)
 class RELIQUARY_API URLGameplayAbility : public UGameplayAbility
@@ -38,22 +39,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY")
 	FGameplayTag ActionTag;
 
-	/** Weapon/spell base damage before the WoW pipeline. Scales per level. */
+	/** Flat base damage so level-1 hits still land. Scales per level. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|Damage")
 	FScalableFloat BaseDamage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|Damage")
 	ERLDamageSchool DamageSchool = ERLDamageSchool::Physical;
 
-	/** Physical only: swing speed for the AP/14 formula (Classic 2H ~3.5). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|Damage",
-		meta = (EditCondition = "DamageSchool == ERLDamageSchool::Physical"))
-	float WeaponSpeed = 2.4f;
-
-	/** Spell only: cast time for the CastTime/3.5 coefficient (1.5 = instant). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|Damage",
-		meta = (EditCondition = "DamageSchool == ERLDamageSchool::Spell"))
-	float CastTime = 1.5f;
+	/**
+	 * How hard this ability scales off your power stat, RoR2 style:
+	 * bread-and-butter ~0.8, heavy hit ~2.0, big payoff 3.0+.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|Damage")
+	float PowerCoefficient = 1.f;
 
 	/** Damage GameplayEffect (should use URLDamageExecution). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|Damage")
@@ -75,8 +73,8 @@ public:
 		FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
 
 	/**
-	 * Builds a damage spec carrying the Classic-WoW pipeline inputs
-	 * (SetByCaller Damage + WeaponSpeed or CastTime, per DamageSchool).
+	 * Builds a damage spec carrying the pipeline inputs (SetByCaller
+	 * Damage + the school's PowerCoefficient).
 	 */
 	FGameplayEffectSpecHandle MakeDamageSpec(float DamageMultiplier = 1.f) const;
 

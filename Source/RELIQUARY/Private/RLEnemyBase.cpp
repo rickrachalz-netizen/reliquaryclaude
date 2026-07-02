@@ -104,7 +104,7 @@ void ARLEnemyBase::DealTouchDamage(AActor* Target)
 	if (Spec.IsValid())
 	{
 		Spec.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_Damage, BaseDamage);
-		Spec.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_WeaponSpeed, TouchAttackSpeed);
+		Spec.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_PhysicalCoefficient, TouchAttackCoefficient);
 		AbilitySystemComponent->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);
 	}
 }

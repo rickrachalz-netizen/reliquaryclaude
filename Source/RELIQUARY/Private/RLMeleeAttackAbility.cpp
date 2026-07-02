@@ -12,6 +12,10 @@ URLMeleeAttackAbility::URLMeleeAttackAbility()
 	ActionTag = RLTags::Ability_Primary;
 	DamageEffectClass = URLDamageEffect::StaticClass();
 	BaseDamage.Value = 12.f;
+
+	// Bread-and-butter swing: physical, modest attack-power scaling.
+	DamageSchool = ERLDamageSchool::Physical;
+	PowerCoefficient = 0.8f;
 }
 
 void URLMeleeAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

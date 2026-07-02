@@ -1,5 +1,4 @@
-// RELIQUARY — the one damage formula for everything in the game,
-// modeled on Classic World of Warcraft.
+// RELIQUARY — the one damage formula for everything in the game.
 
 #pragma once
 
@@ -8,22 +7,24 @@
 #include "RLDamageExecution.generated.h"
 
 /**
- * Classic WoW damage pipeline (see RLCombatFormulas.h for the math):
+ * Action-RPG pipeline (math and tuning in RLCombatFormulas.h), in order:
  *
- * PHYSICAL (SetByCaller.WeaponSpeed present):
- *   AP         = Str x2 (Warrior/default) or Str + Agi (Rogue)
- *   Swing      = WeaponDamage + AP/14 x WeaponSpeed
- *   Crit       = 5% base (class CSV) + gear + 1% per 20 Agility -> x2.0
- *   Mitigation = Armor / (Armor + 400 + 85 x AttackerLevel), cap 75%
+ *   Power       Physical: AP by class (Warrior Str x2, Rogue Str + Agi);
+ *               Spell: SpellPower = Intellect
+ *   Hit         Base + PowerCoefficient x Power (RoR2-style coefficients)
+ *   Sanguinate  x(1 + Sanguination); attacker pays a slice of current
+ *               health for the privilege
+ *   Adapt       x(1 + Adaptability x stacks), 5 stacks of varied play;
+ *               Synergy raises the per-stack value while crits chain
+ *   Crit        chance = CritChance + Agi/Int-derived + Frenzy bonus;
+ *               multiplier = CritDamage + Force (+ Frenzy Force bonus)
+ *   Armor       Classic DR = Armor/(Armor + 400 + 85 x AttackerLevel),
+ *               cap 75% — physical only, spells ignore armor
+ *   Multistrike chance (+ Synergy) to echo the hit at 40% effectiveness
  *
- * SPELL (SetByCaller.CastTime present):
- *   SpellPower = Intellect (RELIQUARY adaptation) + gear
- *   Hit        = Base + SpellPower x (CastTime / 3.5)
- *   Crit       = 5% base + gear + 1% per 60 Intellect -> x1.5
- *   Ignores armor entirely.
- *
- * Adaptability (our signature stat) multiplies either school afterward:
- * x(1 + Adaptability x stacks), up to five stacks of varied play.
+ * After the hit resolves, the source ASC is notified so Hatred, Synergy,
+ * and Frenzy state advance for the NEXT hit — "consecutive" effects never
+ * retroactively buff the hit that built them.
  *
  * Result lands on the target's IncomingDamage meta attribute, which
  * URLAttributeSet converts into Health loss and death handling.

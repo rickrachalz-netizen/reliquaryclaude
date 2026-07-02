@@ -2,13 +2,14 @@
 //
 // Vitals:    Health, MaxHealth, HealthRegen, Mana, MaxMana, ManaRegen
 // Primary:   Strength (Warrior), Agility (Rogue), Intellect (Mage)
-// Secondary: CritChance, CritDamage, Haste, Armor, MoveSpeed, Adaptability
+// Secondary: CritChance, CritDamage, Haste, Armor, MoveSpeed
+// Combat:    Adaptability, Multistrike, Hatred, Sanguination, Force,
+//            Synergy, Frenzy — the proc suite; see RLCombatFormulas.h
 // Meta:      IncomingDamage (transient pipeline value, never persisted)
 //
-// Adaptability (per the production map): increases the damage of abilities
-// and attacks by X% when they aren't a repeat of your last action, stacking
-// up to five times. The stack count lives on URLAbilitySystemComponent; this
-// attribute is the "X% per stack" magnitude.
+// The combat stats are all "X per stack/proc" magnitudes; the live stack
+// counts and proc windows are tracked on URLAbilitySystemComponent and
+// consumed by URLDamageExecution.
 
 #pragma once
 #include "CoreMinimal.h"
@@ -103,6 +104,38 @@ public:
     FGameplayAttributeData Adaptability;
     ATTRIBUTE_ACCESSORS(URLAttributeSet, Adaptability)
 
+    // --- Combat proc suite ---
+
+    /** Chance in [0,1] for a hit to echo again at reduced effectiveness. */
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Multistrike, Category = "Combat")
+    FGameplayAttributeData Multistrike;
+    ATTRIBUTE_ACCESSORS(URLAttributeSet, Multistrike)
+
+    /** Haste gained per consecutive hit against the same enemy (0.01 = +1%/stack). */
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Hatred, Category = "Combat")
+    FGameplayAttributeData Hatred;
+    ATTRIBUTE_ACCESSORS(URLAttributeSet, Hatred)
+
+    /** Damage bonus bought with your own blood on every hit (0.1 = +10% damage). */
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Sanguination, Category = "Combat")
+    FGameplayAttributeData Sanguination;
+    ATTRIBUTE_ACCESSORS(URLAttributeSet, Sanguination)
+
+    /** Added to the critical strike multiplier (0.2 = crits deal +20% more). */
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Force, Category = "Combat")
+    FGameplayAttributeData Force;
+    ATTRIBUTE_ACCESSORS(URLAttributeSet, Force)
+
+    /** Per consecutive crit: Multistrike, Hatred, and Adaptability each +this (drops on non-crit). */
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Synergy, Category = "Combat")
+    FGameplayAttributeData Synergy;
+    ATTRIBUTE_ACCESSORS(URLAttributeSet, Synergy)
+
+    /** Scales the Frenzy proc (1.0 = full +100% crit / +20% Force for 5s). */
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Frenzy, Category = "Combat")
+    FGameplayAttributeData Frenzy;
+    ATTRIBUTE_ACCESSORS(URLAttributeSet, Frenzy)
+
     // --- Meta (not replicated; consumed inside PostGameplayEffectExecute) ---
 
     UPROPERTY(BlueprintReadOnly, Category = "Meta")
@@ -125,4 +158,10 @@ protected:
     UFUNCTION() void OnRep_Armor(const FGameplayAttributeData& Old);
     UFUNCTION() void OnRep_MoveSpeed(const FGameplayAttributeData& Old);
     UFUNCTION() void OnRep_Adaptability(const FGameplayAttributeData& Old);
+    UFUNCTION() void OnRep_Multistrike(const FGameplayAttributeData& Old);
+    UFUNCTION() void OnRep_Hatred(const FGameplayAttributeData& Old);
+    UFUNCTION() void OnRep_Sanguination(const FGameplayAttributeData& Old);
+    UFUNCTION() void OnRep_Force(const FGameplayAttributeData& Old);
+    UFUNCTION() void OnRep_Synergy(const FGameplayAttributeData& Old);
+    UFUNCTION() void OnRep_Frenzy(const FGameplayAttributeData& Old);
 };

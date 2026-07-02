@@ -29,9 +29,9 @@ FeywoodCirclet,Feywood Circlet,A crown of living branches.,Armor,Head,Rare,1,"(A
 FeywoodVest,Feywood Vest,Bark that bends like cloth and stops like steel.,Armor,Chest,Rare,1,"(Armor=55,Health=55,Agility=8)",,"(TagName=""Set.Feywood"")"
 FeywoodStriders,Feywood Striders,The ground softens under every step.,Armor,Legs,Rare,1,"(Armor=45,Health=45,MoveSpeed=25)",,"(TagName=""Set.Feywood"")"
 FeywoodGrips,Feywood Grips,Warm to the touch and quick on the draw.,Armor,Hands,Rare,1,"(Armor=30,Health=25,Haste=0.04)",,"(TagName=""Set.Feywood"")"
-GodboneEdge,Godbone Edge,Forged from the guardians of the path. It remembers being worshipped.,Weapon,Weapon,Epic,1,"(Strength=60,CritDamage=0.25)",,
-GodboneFangs,Godbone Fangs,Twin fangs that drink the light around them.,Weapon,Weapon,Epic,1,"(Agility=60,CritChance=0.08)",,
-GodboneScepter,Godbone Scepter,Mana pours through it like blood through a living heart.,Weapon,Weapon,Epic,1,"(Intellect=60,Adaptability=0.01)",,
+GodboneEdge,Godbone Edge,Forged from the guardians of the path. It remembers being worshipped.,Weapon,Weapon,Epic,1,"(Strength=60,CritDamage=0.25,Force=0.15)",,
+GodboneFangs,Godbone Fangs,Twin fangs that drink the light around them.,Weapon,Weapon,Epic,1,"(Agility=60,CritChance=0.08,Multistrike=0.06)",,
+GodboneScepter,Godbone Scepter,Mana pours through it like blood through a living heart.,Weapon,Weapon,Epic,1,"(Intellect=60,Adaptability=0.01,Synergy=0.01)",,
 GodboneCrown,Godbone Crown,Heavy is the head. Heavier is what it survived.,Armor,Head,Epic,1,"(Armor=55,Health=60,Strength=10,Agility=10,Intellect=10)",,"(TagName=""Set.GodBone"")"
 GodbonePlate,Godbone Plate,Ribs of a fallen god shaped to guard a smaller heart.,Armor,Chest,Epic,1,"(Armor=85,Health=95)",,"(TagName=""Set.GodBone"")"
 GodboneLegplates,Godbone Legplates,Each step lands like a promise.,Armor,Legs,Epic,1,"(Armor=70,Health=70,MoveSpeed=35)",,"(TagName=""Set.GodBone"")"

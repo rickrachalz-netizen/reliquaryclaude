@@ -21,6 +21,12 @@ void URLAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
     DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Armor, COND_None, REPNOTIFY_Always);
     DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
     DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Adaptability, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Multistrike, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Hatred, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Sanguination, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Force, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Synergy, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(URLAttributeSet, Frenzy, COND_None, REPNOTIFY_Always);
 }
 
 void URLAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -91,3 +97,9 @@ void URLAttributeSet::OnRep_Haste(const FGameplayAttributeData& Old) { GAMEPLAYA
 void URLAttributeSet::OnRep_Armor(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Armor, Old); }
 void URLAttributeSet::OnRep_MoveSpeed(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, MoveSpeed, Old); }
 void URLAttributeSet::OnRep_Adaptability(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Adaptability, Old); }
+void URLAttributeSet::OnRep_Multistrike(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Multistrike, Old); }
+void URLAttributeSet::OnRep_Hatred(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Hatred, Old); }
+void URLAttributeSet::OnRep_Sanguination(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Sanguination, Old); }
+void URLAttributeSet::OnRep_Force(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Force, Old); }
+void URLAttributeSet::OnRep_Synergy(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Synergy, Old); }
+void URLAttributeSet::OnRep_Frenzy(const FGameplayAttributeData& Old) { GAMEPLAYATTRIBUTE_REPNOTIFY(URLAttributeSet, Frenzy, Old); }

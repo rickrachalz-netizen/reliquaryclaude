@@ -42,16 +42,31 @@ This document maps every system from the production map to its implementation. G
 | Run win condition | Extract at any charged altar; zone 10's boss ends the run victorious |
 | Game win condition | `ARLWildGodBoss` — challengeable at any time via portal, tuned for geared level 30 |
 
-## Damage: Classic World of Warcraft (`RLCombatFormulas.h`)
+## Damage: action-RPG pipeline with Classic WoW bones (`RLCombatFormulas.h`)
 
-The number pipeline is lifted from Classic WoW so damage *feels* like WoW:
+No auto attacks, no cast times — abilities are the only source of damage, RoR2 style. What survives from Classic WoW is what still fits an action game:
 
-- **Attack Power by class** — Warrior AP = Strength × 2; Rogue AP = Strength + Agility; enemies default to Strength × 2.
-- **Melee swing** = WeaponDamage + (AP / 14) × WeaponSpeed — the classic 14-AP-per-DPS normalization. Every physical ability declares a `WeaponSpeed`.
-- **Spells** = Base + SpellPower × (CastTime / 3.5), instants at the 1.5 s floor coefficient (≈0.43). SpellPower = Intellect (RELIQUARY adaptation, since Classic sourced it from gear only). Spells **ignore armor**.
-- **Crit** — melee: 5% base + gear + 1% per 20 Agility, crits ×2.0. Spells: 5% base + gear + 1% per 60 Intellect, crits ×1.5 (the classic asymmetry).
-- **Armor** = Armor / (Armor + 400 + 85 × AttackerLevel), capped 75% — deep-run monsters partially shred your armor via the level term, just like fighting higher-level mobs.
-- **No attack table** — no miss/dodge/parry/glancing; whiffing feels bad in an action game. **Adaptability** (our signature stat) multiplies either school after the WoW math: ×(1 + X% per non-repeated action, 5 stacks).
+- **Power by class, Classic ratios** — Warrior AP = Strength × 2; Rogue AP = Strength + Agility; SpellPower = Intellect; enemies default to Strength × 2.
+- **Hit = Base + PowerCoefficient × Power** — every ability declares a coefficient (bread-and-butter ~0.8, big payoffs 2.5+), exactly how RoR2 skills are "X% damage".
+- **Schools** — Physical is mitigated by armor; Spell **ignores armor** (Classic). Armor DR = Armor / (Armor + 400 + 85 × AttackerLevel), capped 75% — deep-run monsters partially shred your armor via the level term.
+- **Crit** — chance = 5% base + gear + 1% per 20 Agility (physical) or 1% per 60 Intellect (spell); multiplier = CritDamage + **Force**.
+- **No attack table** — no miss/dodge/parry/glancing; whiffing feels bad in an action game.
+
+### The proc suite (`URLAbilitySystemComponent` tracks the live state)
+
+Pipeline order: Sanguination → Adaptability → Crit → Armor → Multistrike, with state advancing *after* each hit so "consecutive" effects never retroactively buff the hit that built them.
+
+| Stat | Effect |
+|---|---|
+| **Adaptability** | +X% damage per non-repeated action, 5 stacks |
+| **Multistrike** | X% chance for the hit to echo again at 40% effectiveness (the echo counts as its own damage instance) |
+| **Hatred** | +X% haste per consecutive hit on the same enemy (cap 20); switching targets resets the chain |
+| **Sanguination** | Every hit: +X% damage, paid for with current health (X × 0.25 of current HP; can never kill you) |
+| **Force** | +X% critical strike damage, added to the crit multiplier |
+| **Synergy** | Each consecutive crit: Multistrike, Hatred, and Adaptability all +X% (cap 10 stacks); first non-crit spends them |
+| **Frenzy** | 3 damage instances inside 1 s → +100% crit chance and +20% Force for 5 s, scaled by the stat (Frenzy 0.5 = half effect) — Multistrike echoes help trigger it |
+
+The stats deliberately loop into each other: Multistrike feeds Frenzy's instance count, Frenzy feeds crits, crits feed Synergy, Synergy feeds Multistrike/Hatred/Adaptability — stacking several of them is where builds get absurd, per the exponential-power pillar.
 
 ## Scaling: Risk of Rain 2 (`RLCombatFormulas.h`)
 

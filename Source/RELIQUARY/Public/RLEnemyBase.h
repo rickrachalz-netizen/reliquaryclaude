@@ -41,9 +41,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Enemy")
 	float BaseMoveSpeed = 450.f;
 
-	/** Swing speed fed to the Classic melee formula for touch damage. */
+	/** Attack-power coefficient for the basic touch strike. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Enemy")
-	float TouchAttackSpeed = 2.f;
+	float TouchAttackCoefficient = 0.5f;
 
 	// --- Rewards ---
 

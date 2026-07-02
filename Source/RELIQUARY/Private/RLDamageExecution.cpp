@@ -14,6 +14,11 @@ namespace RLDamageStatics
 		DECLARE_ATTRIBUTE_CAPTUREDEF(CritChance);
 		DECLARE_ATTRIBUTE_CAPTUREDEF(CritDamage);
 		DECLARE_ATTRIBUTE_CAPTUREDEF(Adaptability);
+		DECLARE_ATTRIBUTE_CAPTUREDEF(Multistrike);
+		DECLARE_ATTRIBUTE_CAPTUREDEF(Sanguination);
+		DECLARE_ATTRIBUTE_CAPTUREDEF(Force);
+		DECLARE_ATTRIBUTE_CAPTUREDEF(Synergy);
+		DECLARE_ATTRIBUTE_CAPTUREDEF(Frenzy);
 		DECLARE_ATTRIBUTE_CAPTUREDEF(Armor);
 		DECLARE_ATTRIBUTE_CAPTUREDEF(IncomingDamage);
 
@@ -25,6 +30,11 @@ namespace RLDamageStatics
 			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, CritChance, Source, true);
 			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, CritDamage, Source, true);
 			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, Adaptability, Source, true);
+			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, Multistrike, Source, true);
+			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, Sanguination, Source, true);
+			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, Force, Source, true);
+			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, Synergy, Source, true);
+			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, Frenzy, Source, true);
 			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, Armor, Target, false);
 			DEFINE_ATTRIBUTE_CAPTUREDEF(URLAttributeSet, IncomingDamage, Target, false);
 		}
@@ -45,6 +55,11 @@ URLDamageExecution::URLDamageExecution()
 	RelevantAttributesToCapture.Add(RLDamageStatics::Get().CritChanceDef);
 	RelevantAttributesToCapture.Add(RLDamageStatics::Get().CritDamageDef);
 	RelevantAttributesToCapture.Add(RLDamageStatics::Get().AdaptabilityDef);
+	RelevantAttributesToCapture.Add(RLDamageStatics::Get().MultistrikeDef);
+	RelevantAttributesToCapture.Add(RLDamageStatics::Get().SanguinationDef);
+	RelevantAttributesToCapture.Add(RLDamageStatics::Get().ForceDef);
+	RelevantAttributesToCapture.Add(RLDamageStatics::Get().SynergyDef);
+	RelevantAttributesToCapture.Add(RLDamageStatics::Get().FrenzyDef);
 	RelevantAttributesToCapture.Add(RLDamageStatics::Get().ArmorDef);
 }
 
@@ -80,69 +95,95 @@ void URLDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecu
 	const float Agility = Capture(RLDamageStatics::Get().AgilityDef);
 	const float Intellect = Capture(RLDamageStatics::Get().IntellectDef);
 
-	// School selector: WeaponSpeed -> Classic swing, CastTime -> Classic spell.
-	const float WeaponSpeed = Spec.GetSetByCallerMagnitude(RLTags::SetByCaller_WeaponSpeed, false, 0.f);
-	const float CastTime = Spec.GetSetByCallerMagnitude(RLTags::SetByCaller_CastTime, false, 0.f);
-	const bool bSpell = CastTime > 0.f;
+	// School selector: which coefficient tag the ability filled.
+	const float PhysCoefficient = Spec.GetSetByCallerMagnitude(RLTags::SetByCaller_PhysicalCoefficient, false, 0.f);
+	const float SpellCoefficient = Spec.GetSetByCallerMagnitude(RLTags::SetByCaller_SpellCoefficient, false, 0.f);
+	const bool bSpell = SpellCoefficient > 0.f;
 
-	float Damage;
+	// Live combat state on the attacker (built by PREVIOUS hits).
+	URLAbilitySystemComponent* SourceASC =
+		Cast<URLAbilitySystemComponent>(ExecutionParams.GetSourceAbilitySystemComponent());
+	const int32 AdaptStacks = SourceASC ? SourceASC->GetAdaptabilityStacks() : 0;
+	const int32 SynergyStacks = SourceASC ? SourceASC->GetSynergyStacks() : 0;
+	const bool bFrenzied = SourceASC && SourceASC->IsFrenzied();
+
+	// Synergy: crit chains sharpen Multistrike, Hatred (read at cooldown
+	// time), and Adaptability until a non-crit spends the stacks.
+	const float SynergyBonus = Capture(RLDamageStatics::Get().SynergyDef) * static_cast<float>(SynergyStacks);
+
+	// --- Hit: Base + Coefficient x Power ---
+	float Power;
 	float CritChance = Capture(RLDamageStatics::Get().CritChanceDef);
-	float CritMultiplier;
-
 	if (bSpell)
 	{
-		const float SpellPower = RLCombat::SpellPowerFromIntellect(Intellect);
-		Damage = RLCombat::SpellHitDamage(BaseDamage, SpellPower, CastTime);
+		Power = RLCombat::SpellPowerFromIntellect(Intellect);
 		CritChance += RLCombat::SpellCritFromIntellect(Intellect);
-
-		// Classic asymmetry: gear crit-damage scales off the 1.5x spell base.
-		const float GearCritDamage = FMath::Max(Capture(RLDamageStatics::Get().CritDamageDef), 1.f);
-		CritMultiplier = RLCombat::SpellCritMultiplier * (GearCritDamage / RLCombat::MeleeCritMultiplier);
-		CritMultiplier = FMath::Max(CritMultiplier, 1.f);
 	}
 	else
 	{
-		// Attack power by class, Classic ratios.
-		float AttackPower;
 		if (EvalParams.SourceTags && EvalParams.SourceTags->HasTag(RLTags::Class_Rogue))
 		{
-			AttackPower = RLCombat::RogueAttackPower(Strength, Agility);
+			Power = RLCombat::RogueAttackPower(Strength, Agility);
 		}
 		else if (EvalParams.SourceTags && EvalParams.SourceTags->HasTag(RLTags::Class_Warrior))
 		{
-			AttackPower = RLCombat::WarriorAttackPower(Strength);
+			Power = RLCombat::WarriorAttackPower(Strength);
 		}
 		else
 		{
-			AttackPower = RLCombat::DefaultAttackPower(Strength);
+			Power = RLCombat::DefaultAttackPower(Strength);
 		}
-
-		const float Speed = WeaponSpeed > 0.f ? WeaponSpeed : 2.f;
-		Damage = RLCombat::MeleeSwingDamage(BaseDamage, AttackPower, Speed);
 		CritChance += RLCombat::MeleeCritFromAgility(Agility);
-		CritMultiplier = FMath::Max(Capture(RLDamageStatics::Get().CritDamageDef), 1.f);
 	}
 
-	// Adaptability: reward varied play, up to five stacks (RELIQUARY's own).
-	const float AdaptPerStack = Capture(RLDamageStatics::Get().AdaptabilityDef);
+	const float Coefficient = bSpell ? SpellCoefficient : (PhysCoefficient > 0.f ? PhysCoefficient : 1.f);
+	float Damage = RLCombat::AbilityHitDamage(BaseDamage, Coefficient, Power);
+
+	// --- Sanguination: blood in, damage out ---
+	const float Sanguination = Capture(RLDamageStatics::Get().SanguinationDef);
+	if (Sanguination > 0.f && SourceASC)
+	{
+		Damage *= 1.f + Sanguination;
+
+		const float CurrentHealth = SourceASC->GetNumericAttribute(URLAttributeSet::GetHealthAttribute());
+		const float BloodCost = FMath::Min(
+			CurrentHealth * Sanguination * RLCombat::SanguinationBloodCostRatio,
+			FMath::Max(CurrentHealth - 1.f, 0.f));	// the price is steep but never lethal
+		if (BloodCost > 0.f)
+		{
+			SourceASC->ApplyModToAttribute(URLAttributeSet::GetHealthAttribute(),
+				EGameplayModOp::Additive, -BloodCost);
+		}
+	}
+
+	// --- Adaptability (raised by Synergy while crits chain) ---
+	const float AdaptPerStack = Capture(RLDamageStatics::Get().AdaptabilityDef) + SynergyBonus;
 	if (AdaptPerStack > 0.f)
 	{
-		int32 Stacks = 0;
-		if (const URLAbilitySystemComponent* SourceASC =
-			Cast<URLAbilitySystemComponent>(ExecutionParams.GetSourceAbilitySystemComponent()))
-		{
-			Stacks = SourceASC->GetAdaptabilityStacks();
-		}
-		Damage *= 1.f + AdaptPerStack * static_cast<float>(Stacks);
+		Damage *= 1.f + AdaptPerStack * static_cast<float>(AdaptStacks);
 	}
 
-	// Crit roll.
+	// --- Crit (Frenzy supercharges both halves) ---
+	const float FrenzyStat = Capture(RLDamageStatics::Get().FrenzyDef);
+	if (bFrenzied && FrenzyStat > 0.f)
+	{
+		CritChance += RLCombat::FrenzyCritBonus * FrenzyStat;
+	}
+
+	bool bCrit = false;
 	if (CritChance > 0.f && FMath::FRand() < CritChance)
 	{
-		Damage *= CritMultiplier;
+		bCrit = true;
+		float CritMultiplier = Capture(RLDamageStatics::Get().CritDamageDef)
+			+ Capture(RLDamageStatics::Get().ForceDef);
+		if (bFrenzied && FrenzyStat > 0.f)
+		{
+			CritMultiplier += RLCombat::FrenzyForceBonus * FrenzyStat;
+		}
+		Damage *= FMath::Max(CritMultiplier, 1.f);
 	}
 
-	// Armor mitigation — physical only; spells ignore armor (Classic).
+	// --- Armor: physical only; spells slip straight through (Classic) ---
 	if (!bSpell)
 	{
 		const float Armor = Capture(RLDamageStatics::Get().ArmorDef);
@@ -150,9 +191,29 @@ void URLDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecu
 		Damage *= 1.f - RLCombat::ArmorDamageReduction(Armor, AttackerLevel);
 	}
 
-	if (Damage > 0.f)
+	// --- Multistrike: the hit echoes at reduced effectiveness ---
+	int32 Instances = 1;
+	float TotalDamage = Damage;
+	const float MultistrikeChance = FMath::Clamp(
+		Capture(RLDamageStatics::Get().MultistrikeDef) + SynergyBonus, 0.f, 1.f);
+	if (MultistrikeChance > 0.f && FMath::FRand() < MultistrikeChance)
+	{
+		TotalDamage += Damage * RLCombat::MultistrikeEffectiveness;
+		Instances = 2;
+	}
+
+	// Advance the attacker's proc state for the NEXT hit.
+	if (SourceASC)
+	{
+		AActor* Victim = ExecutionParams.GetTargetAbilitySystemComponent()
+			? ExecutionParams.GetTargetAbilitySystemComponent()->GetAvatarActor()
+			: nullptr;
+		SourceASC->NotifyDamageDealt(Victim, bCrit, Instances);
+	}
+
+	if (TotalDamage > 0.f)
 	{
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
-			RLDamageStatics::Get().IncomingDamageProperty, EGameplayModOp::Additive, Damage));
+			RLDamageStatics::Get().IncomingDamageProperty, EGameplayModOp::Additive, TotalDamage));
 	}
 }
