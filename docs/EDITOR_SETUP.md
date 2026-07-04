@@ -56,7 +56,7 @@ Until these exist the director quietly spawns nothing — the loop still runs (g
 
 ## 7. Ability Blueprints (content)
 
-Warrior/Rogue primaries and the Mage bolt work natively out of the box. The remaining kit slots referenced by `Data/Classes.csv` (`/Game/Abilities/GA_*`) are Blueprints parented to **`URLGameplayAbility`** (or the melee/projectile subclasses): set `ActionTag` to `Ability.Secondary` / `Ability.Utility` / `Ability.Special`, add montage + VFX, and call `ApplyDamageToTarget` on hit. Missing ones are skipped gracefully.
+Warrior/Rogue primaries and the Mage bolt work natively out of the box. To upgrade a melee primary into an animated combo, make a Blueprint child of `URLMeleeAttackAbility` (e.g. `GA_WarriorPrimary`), fill its **Combo Montages** array, and drop an **RL Melee Hit** anim notify on each montage's impact frame — damage then fires on the notify, re-pressing the input buffers the next stage, and hit-stop/knockback/shake/sound trigger on contact (all tunable in the **Feel** category). The remaining kit slots referenced by `Data/Classes.csv` (`/Game/Abilities/GA_*`) are Blueprints parented to **`URLGameplayAbility`** (or the melee/projectile subclasses): set `ActionTag` to `Ability.Secondary` / `Ability.Utility` / `Ability.Special`, add montage + VFX, and call `ApplyDamageToTarget` on hit. Missing ones are skipped gracefully.
 
 ## 8. UI flows (content)
 

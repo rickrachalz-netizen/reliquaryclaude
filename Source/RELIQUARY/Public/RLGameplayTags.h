@@ -18,6 +18,10 @@ namespace RLTags
 	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Damage_Critical);
 	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combat_Killed);
 
+	// --- Ability events (montage notifies, combo input buffering) ---
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Melee_Hit);
+	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Melee_Combo);
+
 	// --- Character states ---
 	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Dead);
 	RELIQUARY_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Invulnerable);
