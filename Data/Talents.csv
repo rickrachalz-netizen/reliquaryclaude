@@ -5,9 +5,9 @@ War_T1C,Warrior,1,3,"()",False,Heavy Armor,"Armor increased by 5 per rank.",2,"(
 War_T2A,Warrior,2,1,"(War_T1A,War_T1B)",False,Brutal Strikes,"Crit damage increased by 20%.",1,"(CritDamage=0.2)",None
 War_T2B,Warrior,2,2,"(War_T1A,War_T1B,War_T1C)",False,Vitality,"Increases max health by 60.",1,"(Health=60)",None
 War_T2C,Warrior,2,3,"(War_T1B,War_T1C)",False,Battle Tempo,"Cooldowns reduced by 10%.",1,"(Haste=0.1)",None
-War_T3A,Warrior,3,1,"(War_T2A,War_T2B)",False,Second Wind,"Secondary ability now stuns for 2 seconds. (Takes effect when Mortal Strike ships.)",1,"()",None
+War_T3A,Warrior,3,1,"(War_T2A,War_T2B)",False,Second Wind,"Mortal Strike also stuns its victims for 2 seconds.",1,"()",None
 War_T3B,Warrior,3,2,"(War_T2A,War_T2B,War_T2C)",False,Regeneration,"Increases health regeneration.",1,"(HealthRegen=0.5)",None
-War_T3C,Warrior,3,3,"(War_T2B,War_T2C)",False,Iron Strength,"Strength increased by 5. (Scales from armor once cross-stat talents ship.)",1,"(Strength=5)",None
+War_T3C,Warrior,3,3,"(War_T2B,War_T2C)",False,Iron Strength,"Strength increased by 10% of your armor.",1,"()",None
 War_K1,Warrior,4,1,"(War_T3A)",True,Avatar,"Keystone: replaces the Utility ability with Avatar - grow 10%, break free of movement-impairing effects, and deal 100% increased damage for 10 seconds.",1,"()",/Game/Abilities/GA_WarriorAvatar.GA_WarriorAvatar_C
 War_K2,Warrior,4,2,"(War_T3B)",True,Bladestorm,"Keystone: replaces the Primary ability with Bladestorm - massive damage over 3 seconds; the final tick empowers your next Secondary by 150%.",1,"()",/Game/Abilities/GA_Bladestorm.GA_Bladestorm_C
-War_K3,Warrior,4,3,"(War_T3C)",True,Improved Battle Trance,"Keystone: Battle Trance triggers below 90% HP with stronger maximums - 50% damage reduction, 95% cooldown reduction, 150% healing received, 30% haste, 50% movement speed. (Requires the Battle Trance passive from the kit pass.)",1,"()",None
+War_K3,Warrior,4,3,"(War_T3C)",True,Improved Battle Trance,"Keystone: Battle Trance triggers below 90% HP with stronger maximums - 50% damage reduction, 95% cooldown reduction, 150% healing received, 30% haste, 50% movement speed.",1,"()",None

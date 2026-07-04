@@ -98,6 +98,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Enemy")
 	void DealTouchDamage(AActor* Target);
 
+	/** Hard CC: freezes the built-in brain and pathing for Seconds. */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Enemy")
+	void ApplyStun(float Seconds);
+
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Enemy")
 	bool IsDead() const { return bDead; }
 
@@ -121,6 +125,7 @@ protected:
 	float TimeSinceAttack = 0.f;
 	float RepathTimer = 0.f;
 	bool bNavMovement = false;
+	double StunnedUntilSeconds = 0.0;
 
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamager;

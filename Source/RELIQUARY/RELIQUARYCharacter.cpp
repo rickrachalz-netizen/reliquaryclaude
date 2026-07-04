@@ -17,6 +17,7 @@
 #include "RLEquipmentComponent.h"
 #include "RLRunPowerComponent.h"
 #include "RLRunManagerSubsystem.h"
+#include "RLGameInstance.h"
 #include "RLInteractable.h"
 #include "Engine/OverlapResult.h"
 #include "TimerManager.h"
@@ -210,8 +211,88 @@ void ARELIQUARYCharacter::RefreshHeroBuild()
 	Equipment->RefreshEquipment(AbilitySystemComponent);
 	RunPower->RestoreFromRunManager(AbilitySystemComponent);
 
+	// Battle Trance is the warrior's identity passive; War_K3 upgrades it.
+	bHasBattleTrance = false;
+	bImprovedTrance = false;
+	if (URLGameInstance* GI = Cast<URLGameInstance>(GetWorld()->GetGameInstance()))
+	{
+		if (const FRLHeroData* Hero = GI->GetActiveHero())
+		{
+			bHasBattleTrance = Hero->HeroClass == ERLHeroClass::Warrior;
+			bImprovedTrance = bHasBattleTrance && GI->GetTalentRank(FName(TEXT("War_K3"))) > 0;
+		}
+	}
+
 	GetCharacterMovement()->MaxWalkSpeed =
 		AbilitySystemComponent->GetNumericAttribute(URLAttributeSet::GetMoveSpeedAttribute());
+}
+
+// --- Battle Trance ---
+
+namespace RLTrance
+{
+	// Normal / Improved (War_K3) values, straight from the design sheet.
+	constexpr float Threshold[2]  = { 0.75f, 0.90f };
+	constexpr float MaxDR[2]      = { 0.30f, 0.50f };
+	constexpr float MaxCDR[2]     = { 0.90f, 0.95f };
+	constexpr float MaxHealing[2] = { 1.00f, 1.50f };
+	constexpr float MaxHaste[2]   = { 0.10f, 0.30f };
+	constexpr float MaxSpeed[2]   = { 0.30f, 0.50f };
+
+	// Ramp: ~zero at the threshold, full effect approaching 1% health.
+	constexpr float FloorFraction = 0.01f;
+	constexpr float Exponent = 3.f;
+}
+
+float ARELIQUARYCharacter::GetBattleTranceIntensity() const
+{
+	if (!bHasBattleTrance || bDying || !Attributes)
+	{
+		return 0.f;
+	}
+
+	const float MaxHealth = Attributes->GetMaxHealth();
+	if (MaxHealth <= 0.f)
+	{
+		return 0.f;
+	}
+
+	const int32 Set = bImprovedTrance ? 1 : 0;
+	const float Fraction = Attributes->GetHealth() / MaxHealth;
+	if (Fraction >= RLTrance::Threshold[Set])
+	{
+		return 0.f;
+	}
+
+	const float T = FMath::Clamp(
+		(RLTrance::Threshold[Set] - Fraction) / (RLTrance::Threshold[Set] - RLTrance::FloorFraction),
+		0.f, 1.f);
+	return FMath::Pow(T, RLTrance::Exponent);
+}
+
+float ARELIQUARYCharacter::GetTranceDamageReduction() const
+{
+	return GetBattleTranceIntensity() * RLTrance::MaxDR[bImprovedTrance ? 1 : 0];
+}
+
+float ARELIQUARYCharacter::GetTranceCooldownReduction() const
+{
+	return GetBattleTranceIntensity() * RLTrance::MaxCDR[bImprovedTrance ? 1 : 0];
+}
+
+float ARELIQUARYCharacter::GetTranceHasteBonus() const
+{
+	return GetBattleTranceIntensity() * RLTrance::MaxHaste[bImprovedTrance ? 1 : 0];
+}
+
+float ARELIQUARYCharacter::GetTranceHealingBonus() const
+{
+	return GetBattleTranceIntensity() * RLTrance::MaxHealing[bImprovedTrance ? 1 : 0];
+}
+
+float ARELIQUARYCharacter::GetTranceSpeedBonus() const
+{
+	return GetBattleTranceIntensity() * RLTrance::MaxSpeed[bImprovedTrance ? 1 : 0];
 }
 
 void ARELIQUARYCharacter::Tick(float Dt)
@@ -226,14 +307,19 @@ void ARELIQUARYCharacter::Tick(float Dt)
 	}
 
 	// Passive regeneration, driven by the HealthRegen/ManaRegen attributes.
+	// Battle Trance boosts healing received and quickens the step near death.
 	if (AbilitySystemComponent && Attributes && !bDying)
 	{
 		const float HealthRegen = Attributes->GetHealthRegen();
 		if (HealthRegen != 0.f && Attributes->GetHealth() < Attributes->GetMaxHealth())
 		{
 			AbilitySystemComponent->ApplyModToAttribute(
-				URLAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive, HealthRegen * Dt);
+				URLAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive,
+				HealthRegen * (1.f + GetTranceHealingBonus()) * Dt);
 		}
+
+		GetCharacterMovement()->MaxWalkSpeed =
+			Attributes->GetMoveSpeed() * (1.f + GetTranceSpeedBonus());
 		const float ManaRegen = Attributes->GetManaRegen();
 		if (ManaRegen != 0.f && Attributes->GetMana() < Attributes->GetMaxMana())
 		{

@@ -56,6 +56,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Progression")
 	int32 GetAvailableTalentPoints() const;
 
+	/** Ranks the active hero owns in a talent (0 when absent). */
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Progression")
+	int32 GetTalentRank(FName TalentId) const;
+
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Progression")
 	bool SpendTalentPoint(FName TalentId);
 

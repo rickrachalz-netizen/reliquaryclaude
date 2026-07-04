@@ -121,6 +121,18 @@ int32 URLGameInstance::GetAvailableTalentPoints() const
 	return (Hero->Level - 1) * RLBalance::TalentPointsPerLevel - Spent;
 }
 
+int32 URLGameInstance::GetTalentRank(FName TalentId) const
+{
+	const FRLHeroData* Hero = GetActiveHero();
+	if (!Hero)
+	{
+		return 0;
+	}
+	const FRLTalentRank* Rank = Hero->Talents.FindByPredicate(
+		[&](const FRLTalentRank& R) { return R.TalentId == TalentId; });
+	return Rank ? Rank->Ranks : 0;
+}
+
 bool URLGameInstance::SpendTalentPoint(FName TalentId)
 {
 	FRLHeroData* Hero = GetActiveHero();

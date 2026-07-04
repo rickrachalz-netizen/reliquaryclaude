@@ -103,6 +103,12 @@ void ARLEnemyBase::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// Stunned: no chasing, no striking.
+	if (GetWorld()->GetTimeSeconds() < StunnedUntilSeconds)
+	{
+		return;
+	}
+
 	APawn* Hero = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!Hero)
 	{
@@ -155,6 +161,21 @@ void ARLEnemyBase::Tick(float DeltaSeconds)
 	if (!bNavMovement)
 	{
 		AddMovementInput((Hero->GetActorLocation() - GetActorLocation()).GetSafeNormal2D());
+	}
+}
+
+void ARLEnemyBase::ApplyStun(float Seconds)
+{
+	if (bDead || Seconds <= 0.f)
+	{
+		return;
+	}
+
+	StunnedUntilSeconds = FMath::Max(StunnedUntilSeconds, GetWorld()->GetTimeSeconds() + Seconds);
+	bNavMovement = false;
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		AI->StopMovement();
 	}
 }
 

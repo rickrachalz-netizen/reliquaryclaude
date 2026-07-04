@@ -118,6 +118,22 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Weapon")
 	void OnWeaponDrawRequested();
 
+	// --- Battle Trance (warrior passive; upgraded by the War_K3 keystone) ---
+
+	/**
+	 * 0..1: how deep into Battle Trance the hero is. Zero above the health
+	 * threshold, ramping toward 1 as health approaches death. Drive UI
+	 * feedback (vignette, glow) from this.
+	 */
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|BattleTrance")
+	float GetBattleTranceIntensity() const;
+
+	float GetTranceDamageReduction() const;
+	float GetTranceCooldownReduction() const;
+	float GetTranceHasteBonus() const;
+	float GetTranceHealingBonus() const;
+	float GetTranceSpeedBonus() const;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<URLAbilitySystemComponent> AbilitySystemComponent;
@@ -153,6 +169,10 @@ protected:
 
 	FTimerHandle DeathTimerHandle;
 	bool bDying = false;
+
+	// Cached from the active hero on RefreshHeroBuild.
+	bool bHasBattleTrance = false;
+	bool bImprovedTrance = false;
 
 protected:
 	FVector2D RawMoveInput;
