@@ -106,6 +106,18 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Hero")
 	void OnHeroDied();
 
+	/**
+	 * When false, the next primary press fires OnWeaponDrawRequested instead
+	 * of attacking. Implement that event in BP to play the draw montage,
+	 * attach the weapon, and set this true; sheathing sets it false again.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Weapon")
+	bool bWeaponDrawn = true;
+
+	/** BP hook: the player pressed attack while the weapon was sheathed. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Weapon")
+	void OnWeaponDrawRequested();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<URLAbilitySystemComponent> AbilitySystemComponent;

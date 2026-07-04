@@ -1,6 +1,7 @@
 #include "RLMeleeAttackAbility.h"
 #include "RLGameplayTags.h"
 #include "RLDamageEffect.h"
+#include "RLResourceNode.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemBlueprintLibrary.h"
@@ -128,8 +129,10 @@ void URLMeleeAttackAbility::DoSweep()
 	Avatar->GetWorld()->OverlapMultiByChannel(Overlaps, Center, FQuat::Identity,
 		ECC_Pawn, FCollisionShape::MakeSphere(Radius), Params);
 
+	// Feel feedback only for things worth crunching on — enemies and
+	// resource nodes, never the floor or walls the sphere happens to touch.
 	TSet<AActor*> AlreadyHit;
-	TArray<AActor*> Victims;
+	TArray<AActor*> FeelVictims;
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
 		AActor* Victim = Overlap.GetActor();
@@ -143,7 +146,7 @@ void URLMeleeAttackAbility::DoSweep()
 		if (UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim))
 		{
 			ApplyDamageToTarget(Victim, Multiplier);
-			Victims.Add(Victim);
+			FeelVictims.Add(Victim);
 			OnMeleeHit(Victim);
 		}
 		else
@@ -152,14 +155,17 @@ void URLMeleeAttackAbility::DoSweep()
 			// point damage so anything can shatter into resources.
 			const float WorldDamage = BaseDamage.GetValueAtLevel(GetAbilityLevel()) * Multiplier;
 			Victim->TakeDamage(WorldDamage, FDamageEvent(), nullptr, Avatar);
-			Victims.Add(Victim);
+			if (Victim->IsA<ARLResourceNode>())
+			{
+				FeelVictims.Add(Victim);
+			}
 			OnMeleeHit(Victim);
 		}
 	}
 
-	if (Victims.Num() > 0)
+	if (FeelVictims.Num() > 0)
 	{
-		ApplyHitFeedback(Avatar, Victims);
+		ApplyHitFeedback(Avatar, FeelVictims);
 	}
 }
 
