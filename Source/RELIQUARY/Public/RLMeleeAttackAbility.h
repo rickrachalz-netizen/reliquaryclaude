@@ -116,6 +116,9 @@ protected:
 	/** Plays the next stage if one exists, otherwise ends the combo. */
 	void AdvanceOrEnd();
 
+	/** RoR2-style: player swings snap to the camera's yaw, not run direction. */
+	void FaceCameraDirection();
+
 	void FinishGraceWindow();
 	void EndCombo();
 

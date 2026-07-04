@@ -43,6 +43,7 @@ void URLMeleeAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	// No montages: the original instant swing, playable from day one.
 	if (ComboMontages.IsEmpty())
 	{
+		FaceCameraDirection();
 		DoSweep();
 		EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility=*/true, /*bWasCancelled=*/false);
 		return;
@@ -66,6 +67,7 @@ void URLMeleeAttackAbility::PlayComboStage()
 {
 	bComboQueued = false;
 	bHitFiredThisSwing = false;
+	FaceCameraDirection();
 
 	UAbilityTask_PlayMontageAndWait* Stage = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 		this, NAME_None, ComboMontages[ComboIndex], PlayRate, NAME_None, /*bStopWhenAbilityEnds=*/true);
@@ -125,6 +127,17 @@ void URLMeleeAttackAbility::HandleStageBlendOut()
 	}
 
 	EndCombo();
+}
+
+void URLMeleeAttackAbility::FaceCameraDirection()
+{
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+	const APlayerController* PC = CurrentActorInfo
+		? Cast<APlayerController>(CurrentActorInfo->PlayerController.Get()) : nullptr;
+	if (Avatar && PC)
+	{
+		Avatar->SetActorRotation(FRotator(0.f, PC->GetControlRotation().Yaw, 0.f));
+	}
 }
 
 void URLMeleeAttackAbility::AdvanceOrEnd()
