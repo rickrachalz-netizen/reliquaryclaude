@@ -50,7 +50,7 @@ void ARLZoneScatterVolume::ScatterZone()
 		return;
 	}
 
-	FRandomStream Rng = RunManager->MakeZoneRandomStream();
+	FRLXoshiro256 Rng = RunManager->MakeZoneRng();
 
 	// Resource nodes: each zone reliably grows its planned materials.
 	TArray<FName> Materials;
@@ -94,7 +94,7 @@ void ARLZoneScatterVolume::ScatterZone()
 	}
 }
 
-bool ARLZoneScatterVolume::FindGroundPoint(FRandomStream& Rng, FVector& OutLocation) const
+bool ARLZoneScatterVolume::FindGroundPoint(FRLXoshiro256& Rng, FVector& OutLocation) const
 {
 	const FVector Origin = Bounds->GetComponentLocation();
 	const FVector Extent = Bounds->GetScaledBoxExtent();

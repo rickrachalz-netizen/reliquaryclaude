@@ -34,7 +34,7 @@ void ARLUpgradeAltar::RollOffers()
 		return;
 	}
 
-	FRandomStream Rng(OfferSeed);
+	FRLXoshiro256 Rng(static_cast<uint64>(static_cast<uint32>(OfferSeed)));
 	Data->DrawRandomBoons(ChoiceCount, RunManager->GetAllBoonStacks(), Rng, OfferedBoons);
 	bOffersRolled = true;
 }

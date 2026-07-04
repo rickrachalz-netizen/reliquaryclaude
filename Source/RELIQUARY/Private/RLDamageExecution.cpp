@@ -2,6 +2,9 @@
 #include "RLAttributeSet.h"
 #include "RLAbilitySystemComponent.h"
 #include "RLGameplayTags.h"
+#include "RLRunManagerSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 namespace RLDamageStatics
 {
@@ -95,12 +98,27 @@ void URLDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecu
 		Damage *= 1.f + AdaptPerStack * static_cast<float>(Stacks);
 	}
 
-	// Crit roll.
+	// Crit roll through the run's xoshiro256++ stream (seeded per embark);
+	// falls back to global RNG outside a run context.
 	const float CritChance = Capture(RLDamageStatics::Get().CritChanceDef);
-	if (CritChance > 0.f && FMath::FRand() < CritChance)
+	if (CritChance > 0.f)
 	{
-		const float CritDamage = Capture(RLDamageStatics::Get().CritDamageDef);
-		Damage *= FMath::Max(CritDamage, 1.f);
+		float Roll = FMath::FRand();
+		if (const UAbilitySystemComponent* SourceASC = ExecutionParams.GetSourceAbilitySystemComponent())
+		{
+			const UWorld* World = SourceASC->GetWorld();
+			UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+			if (URLRunManagerSubsystem* RunManager = GI ? GI->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
+			{
+				Roll = RunManager->GetCombatRng().FRand();
+			}
+		}
+
+		if (Roll < CritChance)
+		{
+			const float CritDamage = Capture(RLDamageStatics::Get().CritDamageDef);
+			Damage *= FMath::Max(CritDamage, 1.f);
+		}
 	}
 
 	// Armor mitigation with diminishing returns.

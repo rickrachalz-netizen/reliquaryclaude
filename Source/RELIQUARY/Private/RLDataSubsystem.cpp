@@ -137,7 +137,7 @@ void URLDataSubsystem::GetSetBonuses(const FGameplayTag& SetTag, TArray<const FR
 }
 
 void URLDataSubsystem::DrawRandomBoons(int32 Count, const TMap<FName, int32>& CurrentStacks,
-	FRandomStream& Rng, TArray<FName>& Out) const
+	FRLXoshiro256& Rng, TArray<FName>& Out) const
 {
 	if (!BoonTable)
 	{
@@ -182,7 +182,7 @@ void URLDataSubsystem::DrawRandomBoons(int32 Count, const TMap<FName, int32>& Cu
 	}
 }
 
-FName URLDataSubsystem::DrawSpawnCard(int32 ZoneIndex, float Difficulty, float MaxCost, FRandomStream& Rng) const
+FName URLDataSubsystem::DrawSpawnCard(int32 ZoneIndex, float Difficulty, float MaxCost, FRLXoshiro256& Rng) const
 {
 	if (!SpawnCardTable)
 	{

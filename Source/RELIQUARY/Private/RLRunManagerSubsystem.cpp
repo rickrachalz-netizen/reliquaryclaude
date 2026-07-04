@@ -20,6 +20,7 @@ void URLRunManagerSubsystem::EmbarkOnRun()
 
 	// Seed rolled and locked at embark — restarting cannot reroll the realm.
 	RunSeed = FMath::RandRange(1, MAX_int32 - 1);
+	CombatRng.SeedFrom(static_cast<uint64>(static_cast<uint32>(RunSeed)) * 0x2545F4914F6CDD1Dull);
 	RunStartPlatformSeconds = FPlatformTime::Seconds();
 	CurrentZoneIndex = 1;
 	SetRunState(ERLRunState::InZone);
@@ -37,6 +38,7 @@ void URLRunManagerSubsystem::EmbarkInPlace()
 
 	ResetRunState();
 	RunSeed = FMath::RandRange(1, MAX_int32 - 1);
+	CombatRng.SeedFrom(static_cast<uint64>(static_cast<uint32>(RunSeed)) * 0x2545F4914F6CDD1Dull);
 	RunStartPlatformSeconds = FPlatformTime::Seconds();
 	CurrentZoneIndex = 1;
 	SetRunState(ERLRunState::InZone);
@@ -130,10 +132,12 @@ float URLRunManagerSubsystem::GetDifficultyCoefficient() const
 	return RLBalance::DifficultyCoefficient(GetRunSeconds(), CurrentZoneIndex);
 }
 
-FRandomStream URLRunManagerSubsystem::MakeZoneRandomStream() const
+FRLXoshiro256 URLRunManagerSubsystem::MakeZoneRng() const
 {
 	// Deterministic per (seed, zone): re-entering PIE cannot fish new layouts.
-	return FRandomStream(RunSeed ^ (CurrentZoneIndex * 7919));
+	const uint64 Seed = (static_cast<uint64>(static_cast<uint32>(RunSeed)) << 32)
+		^ static_cast<uint64>(static_cast<uint32>(CurrentZoneIndex * 7919));
+	return FRLXoshiro256(Seed);
 }
 
 bool URLRunManagerSubsystem::ShouldOfferBankingCrate() const
