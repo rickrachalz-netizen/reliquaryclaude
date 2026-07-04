@@ -7,7 +7,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "Math/RandomStream.h"
+#include "RLXoshiro.h"
 #include "RLTypes.h"
 #include "RLRunManagerSubsystem.generated.h"
 
@@ -75,8 +75,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Run")
 	float GetDifficultyCoefficient() const;
 
-	/** Seeded stream for the current zone; identical for re-entries. */
-	FRandomStream MakeZoneRandomStream() const;
+	/** Seeded xoshiro256++ stream for the current zone; identical for re-entries. */
+	FRLXoshiro256 MakeZoneRng() const;
+
+	/** Run-scoped stream for combat rolls (crits); reseeded each embark. */
+	FRLXoshiro256& GetCombatRng() { return CombatRng; }
 
 	/** A crate home is offered after every third cleared zone. */
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Run")
@@ -142,6 +145,7 @@ protected:
 	int32 ZonesCleared = 0;
 	int32 RunSeed = 0;
 	int32 ExcessMana = 0;
+	FRLXoshiro256 CombatRng;
 	double RunStartPlatformSeconds = 0.0;
 	int64 ExperienceThisRun = 0;
 

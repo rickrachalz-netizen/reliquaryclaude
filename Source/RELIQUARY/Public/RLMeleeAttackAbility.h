@@ -113,6 +113,12 @@ protected:
 	/** Sphere sweep + damage + feel feedback for the current swing. */
 	void DoSweep();
 
+	/** Per-victim damage multiplier hook (executes, consumed stacks). */
+	virtual float GetVictimDamageMultiplier(AActor* Victim, float BaseMultiplier);
+
+	/** Native per-victim hit hook for subclasses (debuffs, stuns). */
+	virtual void NotifyVictimHit(AActor* Victim);
+
 	/** Plays the next stage if one exists, otherwise ends the combo. */
 	void AdvanceOrEnd();
 

@@ -5,6 +5,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Engine/DamageEvents.h"
 #include "Engine/OverlapResult.h"
@@ -189,12 +190,13 @@ bool URLMeleeAttackAbility::CanActivateAbility(const FGameplayAbilitySpecHandle 
 		return false;
 	}
 
-	// Post-combo lockout before the first swing comes back.
+	// Post-combo lockout before the first swing comes back (haste and
+	// Battle Trance cooldown reduction shorten it).
 	if (ComboCooldownSeconds > 0.f && ActorInfo && ActorInfo->AvatarActor.IsValid())
 	{
 		if (const UWorld* World = ActorInfo->AvatarActor->GetWorld())
 		{
-			if (World->GetTimeSeconds() < ComboEndTimeSeconds + ComboCooldownSeconds)
+			if (World->GetTimeSeconds() < ComboEndTimeSeconds + GetHastedDuration(ComboCooldownSeconds))
 			{
 				return false;
 			}
@@ -258,9 +260,17 @@ void URLMeleeAttackAbility::DoSweep()
 		AlreadyHit.Add(Victim);
 
 		// Damageable through GAS?
-		if (UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim))
+		if (UAbilitySystemComponent* VictimASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim))
 		{
-			ApplyDamageToTarget(Victim, Multiplier);
+			ApplyDamageToTarget(Victim, GetVictimDamageMultiplier(Victim, Multiplier));
+
+			// The chain's finisher exposes victims to the Secondary.
+			if (bFinisher)
+			{
+				VictimASC->AddLooseGameplayTag(RLTags::State_Exposed);
+			}
+
+			NotifyVictimHit(Victim);
 			FeelVictims.Add(Victim);
 			OnMeleeHit(Victim);
 		}
@@ -282,6 +292,15 @@ void URLMeleeAttackAbility::DoSweep()
 	{
 		ApplyHitFeedback(Avatar, FeelVictims);
 	}
+}
+
+float URLMeleeAttackAbility::GetVictimDamageMultiplier(AActor* Victim, float BaseMultiplier)
+{
+	return BaseMultiplier;
+}
+
+void URLMeleeAttackAbility::NotifyVictimHit(AActor* Victim)
+{
 }
 
 void URLMeleeAttackAbility::ApplyHitFeedback(AActor* Avatar, const TArray<AActor*>& Victims)

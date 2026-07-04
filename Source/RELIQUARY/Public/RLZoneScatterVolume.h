@@ -8,6 +8,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "RLXoshiro.h"
 #include "RLZoneScatterVolume.generated.h"
 
 class UBoxComponent;
@@ -51,10 +52,10 @@ protected:
 	virtual void BeginPlay() override;
 
 	void ScatterZone();
-	bool FindGroundPoint(FRandomStream& Rng, FVector& OutLocation) const;
+	bool FindGroundPoint(FRLXoshiro256& Rng, FVector& OutLocation) const;
 
 	template <typename ActorType>
-	ActorType* SpawnScattered(TSubclassOf<ActorType> ActorClass, FRandomStream& Rng)
+	ActorType* SpawnScattered(TSubclassOf<ActorType> ActorClass, FRLXoshiro256& Rng)
 	{
 		if (!ActorClass)
 		{

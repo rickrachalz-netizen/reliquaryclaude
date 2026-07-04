@@ -6,6 +6,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Engine/DataTable.h"
 #include "RLDataTypes.h"
+#include "RLXoshiro.h"
 #include "RLDataSubsystem.generated.h"
 
 /**
@@ -48,10 +49,10 @@ public:
 	 * stacks. Used by upgrade altars to build their three offered choices.
 	 */
 	void DrawRandomBoons(int32 Count, const TMap<FName, int32>& CurrentStacks,
-		FRandomStream& Rng, TArray<FName>& Out) const;
+		FRLXoshiro256& Rng, TArray<FName>& Out) const;
 
 	/** Weighted random non-boss spawn card affordable within MaxCost. */
-	FName DrawSpawnCard(int32 ZoneIndex, float Difficulty, float MaxCost, FRandomStream& Rng) const;
+	FName DrawSpawnCard(int32 ZoneIndex, float Difficulty, float MaxCost, FRLXoshiro256& Rng) const;
 
 	UDataTable* GetItemTable() const { return ItemTable; }
 	UDataTable* GetBoonTable() const { return BoonTable; }

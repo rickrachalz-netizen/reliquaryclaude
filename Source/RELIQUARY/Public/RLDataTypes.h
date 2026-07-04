@@ -323,7 +323,7 @@ struct FRLSpecRow : public FTableRowBase
 	FText EvolvedTitle;
 };
 
-/** Individual talents — DT_Talents. TreeId matches a DT_Specs row name. */
+/** Individual talents — DT_Talents. Nodes in a class's talent graph. */
 USTRUCT(BlueprintType)
 struct FRLTalentRow : public FTableRowBase
 {
@@ -332,9 +332,24 @@ struct FRLTalentRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Talent")
 	FName TreeId = NAME_None;
 
-	/** Tier gating: requires Tier * 5 points already spent in this tree. */
+	/** Row of the node in the tree layout (1 = top). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Talent")
 	int32 Tier = 0;
+
+	/** Column of the node in the tree layout (1 = left). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Talent")
+	int32 Column = 1;
+
+	/**
+	 * Graph gating: this node unlocks once ANY listed talent has at least
+	 * one rank. Empty = entry node, always available.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Talent")
+	TArray<FName> Prerequisites;
+
+	/** Keystones render differently and usually replace a kit ability. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Talent")
+	bool bKeystone = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Talent")
 	FText DisplayName;

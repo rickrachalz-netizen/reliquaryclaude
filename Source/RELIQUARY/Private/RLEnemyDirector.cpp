@@ -19,8 +19,8 @@ void ARLEnemyDirector::BeginPlay()
 	if (URLRunManagerSubsystem* RunManager =
 		GetGameInstance() ? GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
 	{
-		Rng = RunManager->MakeZoneRandomStream();
-		Rng.GenerateNewSeed();	// spawn timing may vary; layouts may not
+		Rng = RunManager->MakeZoneRng();
+		Rng.SeedFrom(FPlatformTime::Cycles64());	// spawn timing may vary; layouts may not
 	}
 }
 

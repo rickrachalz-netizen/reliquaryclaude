@@ -121,6 +121,18 @@ int32 URLGameInstance::GetAvailableTalentPoints() const
 	return (Hero->Level - 1) * RLBalance::TalentPointsPerLevel - Spent;
 }
 
+int32 URLGameInstance::GetTalentRank(FName TalentId) const
+{
+	const FRLHeroData* Hero = GetActiveHero();
+	if (!Hero)
+	{
+		return 0;
+	}
+	const FRLTalentRank* Rank = Hero->Talents.FindByPredicate(
+		[&](const FRLTalentRank& R) { return R.TalentId == TalentId; });
+	return Rank ? Rank->Ranks : 0;
+}
+
 bool URLGameInstance::SpendTalentPoint(FName TalentId)
 {
 	FRLHeroData* Hero = GetActiveHero();
@@ -137,24 +149,20 @@ bool URLGameInstance::SpendTalentPoint(FName TalentId)
 		return false;
 	}
 
-	// Tier gating: Tier N needs N*5 points already in the same tree.
-	int32 PointsInTree = 0;
-	TArray<TPair<FName, const FRLTalentRow*>> TreeTalents;
-	Data->GetTalentsForTree(Talent->TreeId, TreeTalents);
-	for (const FRLTalentRank& Rank : Hero->Talents)
+	// Graph gating: a node unlocks once any prerequisite holds a rank.
+	if (Talent->Prerequisites.Num() > 0)
 	{
-		for (const auto& Pair : TreeTalents)
-		{
-			if (Pair.Key == Rank.TalentId)
+		const bool bUnlocked = Talent->Prerequisites.ContainsByPredicate(
+			[&](const FName& Prereq)
 			{
-				PointsInTree += Rank.Ranks;
-				break;
-			}
+				const FRLTalentRank* Owned = Hero->Talents.FindByPredicate(
+					[&](const FRLTalentRank& R) { return R.TalentId == Prereq; });
+				return Owned && Owned->Ranks > 0;
+			});
+		if (!bUnlocked)
+		{
+			return false;
 		}
-	}
-	if (PointsInTree < Talent->Tier * 5)
-	{
-		return false;
 	}
 
 	FRLTalentRank* Existing = Hero->Talents.FindByPredicate(

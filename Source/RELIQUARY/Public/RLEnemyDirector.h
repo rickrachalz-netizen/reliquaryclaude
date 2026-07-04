@@ -6,6 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "RLXoshiro.h"
 #include "RLEnemyDirector.generated.h"
 
 class ARLEnemyBase;
@@ -49,7 +50,7 @@ protected:
 
 	float Credits = 0.f;
 	float TimeSinceSpend = 0.f;
-	FRandomStream Rng;
+	FRLXoshiro256 Rng;
 
 	UPROPERTY()
 	TArray<TObjectPtr<ARLEnemyBase>> AliveEnemies;

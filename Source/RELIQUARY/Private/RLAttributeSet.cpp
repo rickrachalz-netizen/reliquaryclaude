@@ -2,6 +2,7 @@
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
 #include "RLAbilitySystemComponent.h"
+#include "RELIQUARYCharacter.h"
 
 void URLAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -52,11 +53,17 @@ void URLAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
     if (Data.EvaluatedData.Attribute == GetIncomingDamageAttribute())
     {
         // Consume the meta attribute and route it into Health.
-        const float Damage = GetIncomingDamage();
+        float Damage = GetIncomingDamage();
         SetIncomingDamage(0.f);
 
         if (Damage > 0.f)
         {
+            // Battle Trance: the deeper the trance, the harder to kill.
+            if (const ARELIQUARYCharacter* Hero = Cast<ARELIQUARYCharacter>(GetOwningActor()))
+            {
+                Damage *= (1.f - Hero->GetTranceDamageReduction());
+            }
+
             const float NewHealth = FMath::Clamp(GetHealth() - Damage, 0.f, GetMaxHealth());
             SetHealth(NewHealth);
 

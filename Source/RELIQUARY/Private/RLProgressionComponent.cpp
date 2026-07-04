@@ -4,6 +4,7 @@
 #include "RLDataTypes.h"
 #include "RLStatLibrary.h"
 #include "RLGameplayAbility.h"
+#include "RLAttributeSet.h"
 #include "AbilitySystemComponent.h"
 
 void URLProgressionComponent::RebuildHero(UAbilitySystemComponent* ASC)
@@ -83,6 +84,18 @@ void URLProgressionComponent::RebuildHero(UAbilitySystemComponent* ASC)
 		if (Socketed.SlotIndex == 0)
 		{
 			GrantAbility(ASC, Essence->MajorAbility, Socketed.Rank);
+		}
+	}
+
+	// Iron Strength (War_T3C): a tenth of armor carried into strength.
+	// Runs on base + talent armor; gear armor lands after this rebuild.
+	if (GI->GetTalentRank(FName(TEXT("War_T3C"))) > 0)
+	{
+		const float Armor = ASC->GetNumericAttribute(URLAttributeSet::GetArmorAttribute());
+		if (Armor > 0.f)
+		{
+			ASC->SetNumericAttributeBase(URLAttributeSet::GetStrengthAttribute(),
+				ASC->GetNumericAttribute(URLAttributeSet::GetStrengthAttribute()) + Armor * 0.1f);
 		}
 	}
 

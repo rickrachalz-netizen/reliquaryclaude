@@ -85,6 +85,15 @@ float URLGameplayAbility::GetHastedDuration(float BaseSeconds) const
 		return BaseSeconds;
 	}
 
-	const float Haste = ASC->GetNumericAttribute(URLAttributeSet::GetHasteAttribute());
-	return BaseSeconds / FMath::Max(1.f + Haste, 0.1f);
+	float Haste = ASC->GetNumericAttribute(URLAttributeSet::GetHasteAttribute());
+	float Duration = BaseSeconds;
+
+	// Battle Trance: bonus haste plus heavy cooldown compression near death.
+	if (const ARELIQUARYCharacter* Hero = Cast<ARELIQUARYCharacter>(GetAvatarActorFromActorInfo()))
+	{
+		Haste += Hero->GetTranceHasteBonus();
+		Duration *= (1.f - Hero->GetTranceCooldownReduction());
+	}
+
+	return Duration / FMath::Max(1.f + Haste, 0.1f);
 }
