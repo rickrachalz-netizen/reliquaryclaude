@@ -232,12 +232,17 @@ void URLMeleeAttackAbility::DoSweep()
 	const bool bFinisher = ComboMontages.Num() > 1 && ComboIndex == ComboMontages.Num() - 1;
 	const float Multiplier = bFinisher ? FinisherMultiplier : 1.f;
 
-	const FVector Center = Avatar->GetActorLocation() + Avatar->GetActorForwardVector() * Range;
+	// A capsule lying along the facing, from the body out to Range: no
+	// point-blank blind spot, with Radius of vertical generosity so short
+	// targets near the crosshair still get clipped without aiming down.
+	const FVector Forward = Avatar->GetActorForwardVector();
+	const FVector Center = Avatar->GetActorLocation() + Forward * (Range * 0.5f);
+	const FQuat AlongForward = FRotationMatrix::MakeFromZ(Forward).ToQuat();
 
 	TArray<FOverlapResult> Overlaps;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(RLMeleeAttack), /*bTraceComplex=*/false, Avatar);
-	Avatar->GetWorld()->OverlapMultiByChannel(Overlaps, Center, FQuat::Identity,
-		ECC_Pawn, FCollisionShape::MakeSphere(Radius), Params);
+	Avatar->GetWorld()->OverlapMultiByChannel(Overlaps, Center, AlongForward,
+		ECC_Pawn, FCollisionShape::MakeCapsule(Radius, Range * 0.5f), Params);
 
 	// Feel feedback only for things worth crunching on — enemies and
 	// resource nodes, never the floor or walls the sphere happens to touch.
