@@ -66,6 +66,31 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Enemy")
 	bool bEmpowered = false;
 
+	// --- Built-in AI ---
+
+	/**
+	 * Simple chase-and-strike brain, on by default so every enemy works
+	 * without a StateTree/BT. Untick on a Blueprint to drive it yourself.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|AI")
+	bool bChaseHero = true;
+
+	/** How far away the hero is noticed. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|AI")
+	float AggroRange = 8000.f;
+
+	/** Touch-strike reach beyond this capsule's radius. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|AI")
+	float AttackRange = 160.f;
+
+	/** Seconds between touch strikes while in reach. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|AI")
+	float AttackInterval = 1.2f;
+
+	/** BP hook: play a swing montage/VFX on each built-in touch strike. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|AI")
+	void OnTouchAttack(AActor* Target);
+
 	UPROPERTY(BlueprintAssignable, Category = "RELIQUARY|Enemy")
 	FRLEnemyKilledSignature OnEnemyKilled;
 
@@ -80,6 +105,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Enemy")
 	void OnDied(AActor* Killer);
 
+	virtual void Tick(float DeltaSeconds) override;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -90,6 +117,10 @@ protected:
 	TObjectPtr<URLAttributeSet> Attributes;
 
 	bool bDead = false;
+
+	float TimeSinceAttack = 0.f;
+	float RepathTimer = 0.f;
+	bool bNavMovement = false;
 
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamager;

@@ -7,12 +7,23 @@
 #include "RLRunManagerSubsystem.h"
 #include "RLResourcePickup.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AIController.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Navigation/PathFollowingComponent.h"
 
 ARLEnemyBase::ARLEnemyBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+
+	// Spawned enemies possess themselves; without a controller the movement
+	// component never simulates, leaving them frozen in the air.
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	AIControllerClass = AAIController::StaticClass();
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 480.f, 0.f);
 
 	AbilitySystemComponent = CreateDefaultSubobject<URLAbilitySystemComponent>(TEXT("ASC"));
 	AbilitySystemComponent->SetIsReplicated(true);
@@ -77,6 +88,70 @@ void ARLEnemyBase::BeginPlay()
 	AbilitySystemComponent->OnDeath.AddDynamic(this, &ARLEnemyBase::HandleDeath);
 }
 
+void ARLEnemyBase::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (bDead || !bChaseHero)
+	{
+		return;
+	}
+
+	APawn* Hero = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Hero)
+	{
+		return;
+	}
+
+	const float Distance = FVector::Dist(GetActorLocation(), Hero->GetActorLocation());
+	if (Distance > AggroRange)
+	{
+		return;
+	}
+
+	TimeSinceAttack += DeltaSeconds;
+
+	const float StrikeReach = AttackRange + GetCapsuleComponent()->GetScaledCapsuleRadius();
+	if (Distance <= StrikeReach)
+	{
+		if (AAIController* AI = Cast<AAIController>(GetController()))
+		{
+			AI->StopMovement();
+		}
+		bNavMovement = false;
+
+		// Square up to the hero while winding the next strike.
+		const FVector ToHero = (Hero->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+		if (!ToHero.IsNearlyZero())
+		{
+			SetActorRotation(FMath::RInterpTo(GetActorRotation(), ToHero.Rotation(), DeltaSeconds, 8.f));
+		}
+
+		if (TimeSinceAttack >= AttackInterval)
+		{
+			TimeSinceAttack = 0.f;
+			OnTouchAttack(Hero);
+			DealTouchDamage(Hero);
+		}
+		return;
+	}
+
+	// Chase: nav pathfollowing when a navmesh is available, beeline otherwise.
+	AAIController* AI = Cast<AAIController>(GetController());
+	RepathTimer -= DeltaSeconds;
+	if (AI && RepathTimer <= 0.f)
+	{
+		RepathTimer = 0.35f;
+		const EPathFollowingRequestResult::Type Result =
+			AI->MoveToActor(Hero, AttackRange * 0.5f, /*bStopOnOverlap=*/true);
+		bNavMovement = Result != EPathFollowingRequestResult::Failed;
+	}
+	if (!bNavMovement)
+	{
+		AddMovementInput((Hero->GetActorLocation() - GetActorLocation()).GetSafeNormal2D());
+	}
+}
+
 void ARLEnemyBase::DealTouchDamage(AActor* Target)
 {
 	if (bDead || !Target)
@@ -123,6 +198,11 @@ void ARLEnemyBase::HandleDeath()
 	OnDied(Killer);
 
 	// Ragdoll, then fade.
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		AI->StopMovement();
+	}
+	DetachFromControllerPendingDestroy();
 	GetCharacterMovement()->DisableMovement();
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (USkeletalMeshComponent* MeshComp = GetMesh())
