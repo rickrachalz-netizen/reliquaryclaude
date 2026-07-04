@@ -9,8 +9,12 @@ bool URLAbilitySystemComponent::TryActivateByActionTag(FGameplayTag ActionTag)
 		return false;
 	}
 
-	for (const FGameplayAbilitySpec& Spec : GetActivatableAbilities())
+	// Walk newest-first: talent keystones are granted after the class kit,
+	// so a keystone sharing an ActionTag replaces the base ability.
+	const TArray<FGameplayAbilitySpec>& Specs = GetActivatableAbilities();
+	for (int32 Index = Specs.Num() - 1; Index >= 0; --Index)
 	{
+		const FGameplayAbilitySpec& Spec = Specs[Index];
 		const URLGameplayAbility* Ability = Cast<URLGameplayAbility>(Spec.Ability);
 		if (Ability && Ability->ActionTag == ActionTag)
 		{
