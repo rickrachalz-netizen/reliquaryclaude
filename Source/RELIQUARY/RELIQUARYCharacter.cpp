@@ -253,7 +253,18 @@ void ARELIQUARYCharacter::ActivateKitAbility(FGameplayTag ActionTag)
 	}
 }
 
-void ARELIQUARYCharacter::OnPrimaryAbility()   { ActivateKitAbility(RLTags::Ability_Primary); }
+void ARELIQUARYCharacter::OnPrimaryAbility()
+{
+	// Sheathed weapon: the press draws instead of swinging (BP plays the
+	// draw montage and flips bWeaponDrawn).
+	if (!bWeaponDrawn)
+	{
+		OnWeaponDrawRequested();
+		return;
+	}
+	ActivateKitAbility(RLTags::Ability_Primary);
+}
+
 void ARELIQUARYCharacter::OnSecondaryAbility() { ActivateKitAbility(RLTags::Ability_Secondary); }
 void ARELIQUARYCharacter::OnUtilityAbility()   { ActivateKitAbility(RLTags::Ability_Utility); }
 void ARELIQUARYCharacter::OnSpecialAbility()   { ActivateKitAbility(RLTags::Ability_Special); }
