@@ -14,6 +14,16 @@ bool URLAbilitySystemComponent::TryActivateByActionTag(FGameplayTag ActionTag)
 		const URLGameplayAbility* Ability = Cast<URLGameplayAbility>(Spec.Ability);
 		if (Ability && Ability->ActionTag == ActionTag)
 		{
+			if (Spec.IsActive())
+			{
+				// Re-press while the ability runs: forward it as a combo
+				// input so montage-driven abilities can buffer a next stage.
+				FGameplayEventData Payload;
+				Payload.EventTag = RLTags::Event_Melee_Combo;
+				Payload.Instigator = GetOwnerActor();
+				HandleGameplayEvent(RLTags::Event_Melee_Combo, &Payload);
+				return true;
+			}
 			return TryActivateAbility(Spec.Handle);
 		}
 	}

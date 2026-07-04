@@ -11,6 +11,9 @@ namespace RLTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Damage_Critical, "Combat.Damage.Critical", "Damage event that rolled a crit.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Killed,          "Combat.Killed",          "Fired on the victim when health hits zero.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Event_Melee_Hit,   "Event.Melee.Hit",   "Sent by the RL Melee Hit anim notify at a swing's impact frame.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Event_Melee_Combo, "Event.Melee.Combo", "Sent when the ability input repeats mid-swing; buffers the next combo stage.");
+
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Dead,         "State.Dead",         "Actor is dead; blocks ability activation.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Invulnerable, "State.Invulnerable", "Ignores incoming damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_InCombat,     "State.InCombat",     "Recently dealt or received damage.");
