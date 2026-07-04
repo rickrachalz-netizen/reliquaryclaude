@@ -84,6 +84,17 @@ void URLMeleeAttackAbility::HandleHitEvent(FGameplayEventData Payload)
 void URLMeleeAttackAbility::HandleComboEvent(FGameplayEventData Payload)
 {
 	bComboQueued = true;
+
+	// A press during the grace window chains immediately.
+	if (bAwaitingGrace)
+	{
+		bAwaitingGrace = false;
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(GraceTimerHandle);
+		}
+		AdvanceOrEnd();
+	}
 }
 
 void URLMeleeAttackAbility::HandleStageBlendOut()
@@ -94,13 +105,56 @@ void URLMeleeAttackAbility::HandleStageBlendOut()
 		DoSweep();
 	}
 
-	if (bComboQueued && ComboMontages.IsValidIndex(ComboIndex + 1))
+	if (bComboQueued)
 	{
-		++ComboIndex;
-		PlayComboStage();
+		AdvanceOrEnd();
 		return;
 	}
 
+	// Hold the combo open briefly so a slightly-late press still chains.
+	if (ComboGraceSeconds > 0.f)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			bAwaitingGrace = true;
+			World->GetTimerManager().SetTimer(GraceTimerHandle,
+				FTimerDelegate::CreateUObject(this, &URLMeleeAttackAbility::FinishGraceWindow),
+				ComboGraceSeconds, /*bLoop=*/false);
+			return;
+		}
+	}
+
+	EndCombo();
+}
+
+void URLMeleeAttackAbility::AdvanceOrEnd()
+{
+	if (ComboMontages.IsValidIndex(ComboIndex + 1))
+	{
+		++ComboIndex;
+		PlayComboStage();
+	}
+	else
+	{
+		EndCombo();
+	}
+}
+
+void URLMeleeAttackAbility::FinishGraceWindow()
+{
+	bAwaitingGrace = false;
+	if (bComboQueued)
+	{
+		AdvanceOrEnd();
+	}
+	else
+	{
+		EndCombo();
+	}
+}
+
+void URLMeleeAttackAbility::EndCombo()
+{
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo,
 		/*bReplicateEndAbility=*/true, /*bWasCancelled=*/false);
 }
@@ -109,6 +163,49 @@ void URLMeleeAttackAbility::HandleStageCancelled()
 {
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo,
 		/*bReplicateEndAbility=*/true, /*bWasCancelled=*/true);
+}
+
+bool URLMeleeAttackAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayTagContainer* SourceTags,
+	const FGameplayTagContainer* TargetTags,
+	FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags))
+	{
+		return false;
+	}
+
+	// Post-combo lockout before the first swing comes back.
+	if (ComboCooldownSeconds > 0.f && ActorInfo && ActorInfo->AvatarActor.IsValid())
+	{
+		if (const UWorld* World = ActorInfo->AvatarActor->GetWorld())
+		{
+			if (World->GetTimeSeconds() < ComboEndTimeSeconds + ComboCooldownSeconds)
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+void URLMeleeAttackAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateEndAbility, bool bWasCancelled)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(GraceTimerHandle);
+		if (!ComboMontages.IsEmpty())
+		{
+			ComboEndTimeSeconds = World->GetTimeSeconds();
+		}
+	}
+	bAwaitingGrace = false;
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 void URLMeleeAttackAbility::DoSweep()
