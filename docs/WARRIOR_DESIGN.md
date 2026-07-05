@@ -10,7 +10,7 @@ what the design says, what is live in the build, and what is still stubbed.
 | Passive | **Battle Trance** | Below 75% HP: up to 30% damage reduction, 90% CDR, +100% healing received, +10% haste, +30% move speed — ramping exponentially from 1% of max effect at 74.99% HP toward full effect near 1% HP | **LIVE** (`ARELIQUARYCharacter::GetBattleTranceIntensity`, warrior heroes only). DR hooks GAS damage intake; healing bonus boosts regen; CDR+haste compress hasted cooldowns; speed bonus in Tick. `GetBattleTranceIntensity` is BlueprintPure — drive a vignette/glow from it |
 | Primary | **3-slash combo** (Mercenary-style) | 3rd hit +10% damage and applies a stacking debuff: +50% Secondary damage per stack | **LIVE incl. Expose**: the finisher now applies a stacking `State.Exposed` tag that Mortal Strike consumes (+50% each). Set `FinisherMultiplier = 1.1` on GA_WarriorPrimary to match the +10% design |
 | Secondary | **Mortal Strike** | Slow heavy hit, longish CD; -10% healing received for 10s; +50% damage below 20% HP | **LIVE** (`RLMortalStrikeAbility`, wired into Classes.csv). Executes below 20%, consumes Exposed, applies `State.MortalWounds` for 10s (healing hookup pending a healing system), stuns 2s with War_T3A. Optional: BP subclass with one montage in ComboMontages for the swing anim |
-| Special | **Reckless Abandon** | Hold-to-charge line dash (Loader punch + WoW dragon charge): windup dig-in, big hitstun on first enemy, Crushed Armor (+30% damage taken, 45s), AoE + Demoralizing Shout (-30% damage dealt, 10s), self-recoil 5% current HP + brief slow, air-usable with reduced range | **Not built** — hold/release input + launch physics need in-editor iteration (slot currently GA_WarriorAvatar placeholder) |
+| Special | **Reckless Abandon** | Hold-to-charge line dash (Loader punch + WoW dragon charge): windup dig-in, big hitstun on first enemy, Crushed Armor (+30% damage taken, 45s), AoE + Demoralizing Shout (-30% damage dealt, 10s), self-recoil 5% current HP + brief slow, air-usable with reduced range | **LIVE** (`RLRecklessAbandonAbility`, wired into Classes.csv). Hold Special to charge (feet plant while grounded), release to dash; held time scales distance (600→2400) and damage (40%→100%). Collides with everything: enemy hit = full package (stun, Crushed Armor 45s via `State.CrushedArmor` +30% in the damage execution, AoE 600 + `State.Demoralized` -30% dealt for 10s); wall/tree hit = direct damage to destructibles + recoil only; a clean whiff is free. Recoil = 5% *current* HP (unmitigated) + 10% slow 1.5s, both on any collision. Midair range ×0.6. CD 12s hasted. BP hooks: OnChargeStarted/Tick, OnDashStarted, OnChargeImpact + `GetChargeAlpha()` for HUD |
 | Utility | **Heroic Leap** | Hold-to-aim leap, small AoE damage + 10% slow for 5s on landing; 10 kills reset the CD | **Not built** — same reason (slot currently GA_WarriorCharge placeholder) |
 
 ## Talent tree (graph-gated)
@@ -70,3 +70,14 @@ converted; revisit when percent modifiers exist:
 8. Battle Trance testing: take hits until below 75% HP — regen visibly
    accelerates, speed rises, cooldowns shrink as health drops. `showdebug
    abilitysystem` lists the live tags (Exposed/MortalWounds/Empowered).
+9. Reckless Abandon: reimport **DT_Classes** (Warrior Special now points at
+   the native `RLRecklessAbandonAbility`). The kit inputs now forward
+   button releases too — no editor change needed as long as IA_Special has
+   no trigger that suppresses `Completed` (default Down trigger is fine).
+10. Reckless Abandon testing: tap vs full 1s hold (short/weak vs 2400cm
+    full-damage dash), use midair (shorter), charge into an enemy
+    (`showdebug abilitysystem` on it shows `State.CrushedArmor`; nearby
+    enemies gain `State.Demoralized`), charge into a tree (it shatters,
+    you recoil), whiff into open air (no recoil). Optional polish: BP
+    subclass `GA_RecklessAbandon` with windup/dash montages + VFX on the
+    OnCharge*/OnDash* hooks, then point DT_Classes at it.

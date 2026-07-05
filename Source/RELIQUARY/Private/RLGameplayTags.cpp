@@ -20,6 +20,8 @@ namespace RLTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Exposed,      "State.Exposed",      "Stacking: primary finisher marks; Mortal Strike consumes for bonus damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_MortalWounds, "State.MortalWounds", "Healing received reduced (applied by Mortal Strike).");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BladestormEmpowered, "State.BladestormEmpowered", "Bladestorm's final tick empowers the next Secondary.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_CrushedArmor,        "State.CrushedArmor",        "Armor crushed by Reckless Abandon: takes increased damage.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Demoralized,         "State.Demoralized",         "Demoralizing Shout: deals reduced damage.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Class_Warrior, "Class.Warrior", "Warrior base class.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Class_Rogue,   "Class.Rogue",   "Rogue base class.");

@@ -121,9 +121,21 @@ void URLDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecu
 		}
 	}
 
+	// Demoralizing Shout: a demoralized attacker hits with less conviction.
+	if (EvalParams.SourceTags && EvalParams.SourceTags->HasTag(RLTags::State_Demoralized))
+	{
+		Damage *= 0.7f;
+	}
+
 	// Armor mitigation with diminishing returns.
 	const float Armor = FMath::Max(Capture(RLDamageStatics::Get().ArmorDef), 0.f);
 	Damage *= 1.f - Armor / (Armor + 300.f);
+
+	// Crushed Armor: Reckless Abandon's collision leaves the victim wide open.
+	if (EvalParams.TargetTags && EvalParams.TargetTags->HasTag(RLTags::State_CrushedArmor))
+	{
+		Damage *= 1.3f;
+	}
 
 	if (Damage > 0.f)
 	{
