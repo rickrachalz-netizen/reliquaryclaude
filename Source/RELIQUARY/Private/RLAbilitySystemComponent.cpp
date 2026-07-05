@@ -34,6 +34,37 @@ bool URLAbilitySystemComponent::TryActivateByActionTag(FGameplayTag ActionTag)
 	return false;
 }
 
+void URLAbilitySystemComponent::NotifyActionReleased(FGameplayTag ActionTag)
+{
+	if (!ActionTag.IsValid())
+	{
+		return;
+	}
+
+	// Newest-first, mirroring TryActivateByActionTag's slot-override rule.
+	ABILITYLIST_SCOPE_LOCK();
+	TArray<FGameplayAbilitySpec>& Specs = GetActivatableAbilities();
+	for (int32 Index = Specs.Num() - 1; Index >= 0; --Index)
+	{
+		FGameplayAbilitySpec& Spec = Specs[Index];
+		const URLGameplayAbility* Ability = Cast<URLGameplayAbility>(Spec.Ability);
+		if (Ability && Ability->ActionTag == ActionTag && Spec.IsActive())
+		{
+			// Pipes InputReleased to the active instance(s); the replicated
+			// event also wakes any Blueprint WaitInputRelease tasks.
+			AbilitySpecInputReleased(Spec);
+
+			FPredictionKey PredictionKey;
+			if (const UGameplayAbility* Instance = Spec.GetPrimaryInstance())
+			{
+				PredictionKey = Instance->GetCurrentActivationInfo().GetActivationPredictionKey();
+			}
+			InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, Spec.Handle, PredictionKey);
+			return;
+		}
+	}
+}
+
 void URLAbilitySystemComponent::NotifyActionUsed(const FGameplayTag& ActionTag)
 {
 	if (!ActionTag.IsValid())

@@ -61,4 +61,8 @@ public:
 	/** Cooldown duration shortened by the owner's Haste. */
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Cooldown")
 	float GetHastedDuration(float BaseSeconds) const;
+
+protected:
+	/** RoR2-style: player abilities snap to the camera's yaw, not run direction. */
+	void FaceCameraDirection();
 };

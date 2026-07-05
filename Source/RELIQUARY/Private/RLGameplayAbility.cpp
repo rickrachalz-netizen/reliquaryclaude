@@ -1,9 +1,11 @@
 #include "RLGameplayAbility.h"
+#include "RELIQUARYCharacter.h"
 #include "RLAbilitySystemComponent.h"
 #include "RLAttributeSet.h"
 #include "RLGameplayTags.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemGlobals.h"
+#include "GameFramework/PlayerController.h"
 
 URLGameplayAbility::URLGameplayAbility()
 {
@@ -74,6 +76,17 @@ void URLGameplayAbility::ApplyDamageToTarget(AActor* Target, float DamageMultipl
 		const float Damage = BaseDamage.GetValueAtLevel(GetAbilityLevel()) * DamageMultiplier;
 		SpecHandle.Data->SetSetByCallerMagnitude(RLTags::SetByCaller_Damage, Damage);
 		SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+	}
+}
+
+void URLGameplayAbility::FaceCameraDirection()
+{
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+	const APlayerController* PC = CurrentActorInfo
+		? Cast<APlayerController>(CurrentActorInfo->PlayerController.Get()) : nullptr;
+	if (Avatar && PC)
+	{
+		Avatar->SetActorRotation(FRotator(0.f, PC->GetControlRotation().Yaw, 0.f));
 	}
 }
 

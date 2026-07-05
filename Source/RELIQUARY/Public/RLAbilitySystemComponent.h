@@ -35,6 +35,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Abilities")
 	bool TryActivateByActionTag(FGameplayTag ActionTag);
 
+	/**
+	 * Forwards a kit button release to the active ability in that slot, so
+	 * hold-to-charge abilities (Reckless Abandon, Heroic Leap) know when to
+	 * fire. No-op when nothing in the slot is active.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Abilities")
+	void NotifyActionReleased(FGameplayTag ActionTag);
+
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Combat")
 	int32 GetAdaptabilityStacks() const { return AdaptabilityStacks; }
 

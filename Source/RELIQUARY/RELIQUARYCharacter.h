@@ -148,6 +148,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Movement")
 	float SprintSpeedMultiplier = 2.f;
 
+	/**
+	 * Short-lived walk-speed multiplier (ability recoils, debuff slows).
+	 * Folded into the same tick-driven formula as sprint and Battle Trance,
+	 * so nothing stomps anything. Reapplying overwrites the previous one.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Movement")
+	void ApplyTemporarySpeedMultiplier(float Multiplier, float Seconds);
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<URLAbilitySystemComponent> AbilitySystemComponent;
@@ -169,10 +177,15 @@ protected:
 	float InteractRange = 350.f;
 
 	void ActivateKitAbility(FGameplayTag ActionTag);
+	void ReleaseKitAbility(FGameplayTag ActionTag);
 	void OnPrimaryAbility();
 	void OnSecondaryAbility();
 	void OnUtilityAbility();
 	void OnSpecialAbility();
+	void OnPrimaryAbilityReleased();
+	void OnSecondaryAbilityReleased();
+	void OnUtilityAbilityReleased();
+	void OnSpecialAbilityReleased();
 	void OnInteract();
 
 	UFUNCTION()
@@ -187,6 +200,10 @@ protected:
 	// Cached from the active hero on RefreshHeroBuild.
 	bool bHasBattleTrance = false;
 	bool bImprovedTrance = false;
+
+	// Temporary slow/boost state consumed by Tick's walk-speed formula.
+	float TempSpeedMultiplier = 1.f;
+	double TempSpeedUntilSeconds = 0.0;
 
 protected:
 	FVector2D RawMoveInput;

@@ -96,22 +96,31 @@ void ARELIQUARYCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ARELIQUARYCharacter::Look);
 
-		// Ability kit
+		// Ability kit. Releases are forwarded too so hold-to-charge
+		// abilities (Reckless Abandon, Heroic Leap) know when to fire.
 		if (PrimaryAbilityAction)
 		{
 			EnhancedInputComponent->BindAction(PrimaryAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnPrimaryAbility);
+			EnhancedInputComponent->BindAction(PrimaryAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnPrimaryAbilityReleased);
+			EnhancedInputComponent->BindAction(PrimaryAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnPrimaryAbilityReleased);
 		}
 		if (SecondaryAbilityAction)
 		{
 			EnhancedInputComponent->BindAction(SecondaryAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnSecondaryAbility);
+			EnhancedInputComponent->BindAction(SecondaryAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnSecondaryAbilityReleased);
+			EnhancedInputComponent->BindAction(SecondaryAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnSecondaryAbilityReleased);
 		}
 		if (UtilityAbilityAction)
 		{
 			EnhancedInputComponent->BindAction(UtilityAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnUtilityAbility);
+			EnhancedInputComponent->BindAction(UtilityAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnUtilityAbilityReleased);
+			EnhancedInputComponent->BindAction(UtilityAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnUtilityAbilityReleased);
 		}
 		if (SpecialAbilityAction)
 		{
 			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnSpecialAbility);
+			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnSpecialAbilityReleased);
+			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnSpecialAbilityReleased);
 		}
 		if (InteractAction)
 		{
@@ -318,9 +327,14 @@ void ARELIQUARYCharacter::Tick(float Dt)
 				HealthRegen * (1.f + GetTranceHealingBonus()) * Dt);
 		}
 
+		if (TempSpeedMultiplier != 1.f && GetWorld()->GetTimeSeconds() >= TempSpeedUntilSeconds)
+		{
+			TempSpeedMultiplier = 1.f;
+		}
 		GetCharacterMovement()->MaxWalkSpeed =
 			Attributes->GetMoveSpeed() * (1.f + GetTranceSpeedBonus())
-			* (bSprinting ? SprintSpeedMultiplier : 1.f);
+			* (bSprinting ? SprintSpeedMultiplier : 1.f)
+			* TempSpeedMultiplier;
 		const float ManaRegen = Attributes->GetManaRegen();
 		if (ManaRegen != 0.f && Attributes->GetMana() < Attributes->GetMaxMana())
 		{
@@ -355,6 +369,31 @@ void ARELIQUARYCharacter::OnPrimaryAbility()
 void ARELIQUARYCharacter::OnSecondaryAbility() { ActivateKitAbility(RLTags::Ability_Secondary); }
 void ARELIQUARYCharacter::OnUtilityAbility()   { ActivateKitAbility(RLTags::Ability_Utility); }
 void ARELIQUARYCharacter::OnSpecialAbility()   { ActivateKitAbility(RLTags::Ability_Special); }
+
+void ARELIQUARYCharacter::ReleaseKitAbility(FGameplayTag ActionTag)
+{
+	// No bDying gate: releases must always reach the ability so a
+	// charge-and-hold state can't wedge open.
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->NotifyActionReleased(ActionTag);
+	}
+}
+
+void ARELIQUARYCharacter::OnPrimaryAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Primary); }
+void ARELIQUARYCharacter::OnSecondaryAbilityReleased() { ReleaseKitAbility(RLTags::Ability_Secondary); }
+void ARELIQUARYCharacter::OnUtilityAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Utility); }
+void ARELIQUARYCharacter::OnSpecialAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Special); }
+
+void ARELIQUARYCharacter::ApplyTemporarySpeedMultiplier(float Multiplier, float Seconds)
+{
+	if (Seconds <= 0.f || Multiplier < 0.f)
+	{
+		return;
+	}
+	TempSpeedMultiplier = Multiplier;
+	TempSpeedUntilSeconds = GetWorld()->GetTimeSeconds() + Seconds;
+}
 
 void ARELIQUARYCharacter::OnInteract()
 {

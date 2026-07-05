@@ -144,17 +144,6 @@ void URLMeleeAttackAbility::HandleStageBlendOut()
 	EndCombo();
 }
 
-void URLMeleeAttackAbility::FaceCameraDirection()
-{
-	AActor* Avatar = GetAvatarActorFromActorInfo();
-	const APlayerController* PC = CurrentActorInfo
-		? Cast<APlayerController>(CurrentActorInfo->PlayerController.Get()) : nullptr;
-	if (Avatar && PC)
-	{
-		Avatar->SetActorRotation(FRotator(0.f, PC->GetControlRotation().Yaw, 0.f));
-	}
-}
-
 void URLMeleeAttackAbility::AdvanceOrEnd()
 {
 	if (ComboMontages.IsValidIndex(ComboIndex + 1))
