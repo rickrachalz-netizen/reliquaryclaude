@@ -1,4 +1,4 @@
-// RELIQUARY — warrior Special: Reckless Abandon, a hold-to-charge line dash.
+// RELIQUARY — warrior Special: Reckless Abandon, a hold-to-charge launch.
 
 #pragma once
 
@@ -10,17 +10,21 @@ class UCameraShakeBase;
 class USoundBase;
 
 /**
- * Hold the Special input to dig in and charge, release to dash in a straight
- * line at high speed. Held time scales dash distance and damage; releasing
- * early is a shorter, weaker charge. Usable midair at reduced range.
+ * Hold the Special input to dig in and charge, release to launch along the
+ * full 3D camera aim (Loader's gauntlet feel: aim up and it flings you into
+ * the air). Held time scales distance and damage; releasing early is a
+ * shorter, weaker charge. Usable midair at reduced range.
  *
- * The dash stops on the first blocking thing in its path:
+ * Walkable ground never stops the punch — the dash skims along floors and
+ * rides up ramps. Objects do:
  *  - Enemy: heavy damage and hitstun, Crushed Armor on the victim (takes
  *    increased damage, long duration), then AoE damage around the impact and
  *    Demoralizing Shout (deals reduced damage) on every enemy caught.
- *  - Wall/destructible: the direct-hit damage lands on it (trees shatter).
- *  - Either collision recoils on the warrior: a cut of current HP and a
- *    brief self-slow. A clean full-distance whiff costs nothing.
+ *  - Wall/tree/rock: the direct-hit damage lands on destructibles.
+ *  - Either collision recoils the warrior: a cut of current HP, a brief
+ *    self-slow, and a small bounce up-and-backward off the impact.
+ * A clean whiff costs nothing and keeps its momentum — the warrior sails on
+ * with dash velocity and arcs down ballistically.
  *
  * Works fully without content; subclass in BP for montages/VFX on the hooks.
  */
@@ -62,6 +66,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Dash")
 	float DashSpeed = 3000.f;
 
+	/** Velocity kept when the dash ends without a collision (the fling). */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Dash")
+	float MomentumCarryFraction = 1.f;
+
+	/** Deflect along walkable ground instead of treating it as a wall. */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Dash")
+	bool bSkimWalkableGround = true;
+
+	/** Surfaces with an impact normal Z at or above this count as ground. */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Dash")
+	float SkimFloorNormalZ = 0.7f;
+
 	// --- Impact ---
 
 	/** Hard CC on the enemy the dash collides with. */
@@ -96,6 +112,14 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Recoil")
 	float RecoilSlowSeconds = 1.5f;
+
+	/** Bounce off an impact: backward speed, opposite the dash. */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Recoil")
+	float ImpactBounceBackSpeed = 400.f;
+
+	/** Bounce off an impact: upward pop. */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Recoil")
+	float ImpactBounceUpSpeed = 350.f;
 
 	// --- Feel ---
 
@@ -162,8 +186,9 @@ protected:
 	// Dash state
 	bool bDashing = false;
 	FVector DashDirection = FVector::ForwardVector;
-	FVector DashStartLocation = FVector::ZeroVector;
+	FVector LastDashLocation = FVector::ZeroVector;
 	double DashStartTimeSeconds = 0.0;
+	float DashDistanceTraveled = 0.f;
 	float DashDistanceBudget = 0.f;
 	float DashDamageMultiplier = 1.f;
 
@@ -192,6 +217,11 @@ protected:
 	/** Hit-stop + camera shake + impact sound. */
 	void ApplyImpactFeedback(AActor* Victim);
 
-	void StopDashMovement();
+	/** Halts the dash; an impact bounce pops the warrior up and backward. */
+	void StopDashMovement(bool bImpactBounce);
+
+	/** Whiff end: hand the dash velocity over to gravity (the fling). */
+	void EndDashWithMomentum();
+
 	void EndSelf(bool bWasCancelled);
 };
