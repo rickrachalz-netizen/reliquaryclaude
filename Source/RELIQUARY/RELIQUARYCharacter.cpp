@@ -319,7 +319,8 @@ void ARELIQUARYCharacter::Tick(float Dt)
 		}
 
 		GetCharacterMovement()->MaxWalkSpeed =
-			Attributes->GetMoveSpeed() * (1.f + GetTranceSpeedBonus());
+			Attributes->GetMoveSpeed() * (1.f + GetTranceSpeedBonus())
+			* (bSprinting ? SprintSpeedMultiplier : 1.f);
 		const float ManaRegen = Attributes->GetManaRegen();
 		if (ManaRegen != 0.f && Attributes->GetMana() < Attributes->GetMaxMana())
 		{

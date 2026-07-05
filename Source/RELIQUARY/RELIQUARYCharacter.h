@@ -134,6 +134,20 @@ public:
 	float GetTranceHealingBonus() const;
 	float GetTranceSpeedBonus() const;
 
+	// --- Sprint ---
+
+	/**
+	 * True while the sprint key is held (set from BP input). Tick folds it
+	 * into MaxWalkSpeed together with the MoveSpeed attribute and Battle
+	 * Trance, so nothing stomps anything.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Movement")
+	bool bSprinting = false;
+
+	/** Sprint speed as a multiple of base move speed. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Movement")
+	float SprintSpeedMultiplier = 2.f;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<URLAbilitySystemComponent> AbilitySystemComponent;
