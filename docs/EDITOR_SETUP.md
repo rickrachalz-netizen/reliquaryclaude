@@ -66,6 +66,24 @@ Warrior/Rogue primaries and the Mage bolt work natively out of the box. To upgra
 - **Hero creation** (main menu): call `URLGameInstance::CreateHero(Name, Class, SpecId)` then open `L_Lobby`.
 - **Talents/Essences** (base camp): `SpendTalentPoint`, `SocketEssence`, `UpgradeEssence` on the game instance; call `RefreshHeroBuild` on the character afterwards.
 
+## 9. Feel pass: torso aim + enemy health bars
+
+- **Torso follows the camera** (hero): reparent the hero's Animation Blueprint
+  to **`URLHeroAnimInstance`** (Class Settings → Parent Class). In the
+  AnimGraph, between the state machine's output and the Output Pose, chain a
+  **Transform (Modify) Bone** node per spine bone (`spine_01`, `spine_02`,
+  `spine_03`), Rotation Mode **Add to Existing**, Rotation Space **Component
+  Space**, and feed each one `TorsoYaw / 3` (as Roll or Yaw depending on the
+  skeleton's bone axes — flip until the twist looks right) plus
+  `TorsoPitch / 3`. Now strafing left while aiming right swings the weapon
+  toward the crosshair. Clamp/smoothing tunables (`MaxTorsoYaw`,
+  `AimInterpSpeed`) live on the anim instance class defaults.
+- **Enemy health bars** work with zero setup: every `ARLEnemyBase` shows a
+  bar above its head when damaged and hides it `HealthBarLingerSeconds` (5s)
+  after the last hit — elites violet, bosses orange. To restyle, make a WBP
+  reparented to **`URLEnemyHealthBarWidget`** containing a ProgressBar named
+  `Bar`, and set it as `HealthBarWidgetClass` on the enemy Blueprint.
+
 ## Smoke test
 
 PIE in `L_Run`: a run auto-embarks in place (seeded), nodes and altars scatter, primary attack shatters trees into pickups, excess mana accrues, an upgrade altar sells a boon, the challenge altar charges (boss skipped if no enemy BPs yet), and choosing *Extract* returns to `L_Lobby`, banks the haul, and autosaves.

@@ -2,6 +2,7 @@
 #include "RLAbilitySystemComponent.h"
 #include "RLAttributeSet.h"
 #include "RLDamageEffect.h"
+#include "RLEnemyHealthBarWidget.h"
 #include "RLGameplayTags.h"
 #include "RLGameInstance.h"
 #include "RLRunManagerSubsystem.h"
@@ -9,9 +10,11 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "TimerManager.h"
 
 ARLEnemyBase::ARLEnemyBase()
 {
@@ -35,6 +38,15 @@ ARLEnemyBase::ARLEnemyBase()
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	Attributes = CreateDefaultSubobject<URLAttributeSet>(TEXT("Attributes"));
+
+	// Combat health bar: hidden until the enemy actually gets hurt.
+	HealthBarWidgetClass = URLEnemyHealthBarWidget::StaticClass();
+	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
+	HealthBarComponent->SetupAttachment(GetCapsuleComponent());
+	HealthBarComponent->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
+	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HealthBarComponent->SetDrawAtDesiredSize(true);
+	HealthBarComponent->SetVisibility(false);
 }
 
 UAbilitySystemComponent* ARLEnemyBase::GetAbilitySystemComponent() const
@@ -48,6 +60,11 @@ void ARLEnemyBase::BeginPlay()
 
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	AbilitySystemComponent->AddLooseGameplayTag(RLTags::Enemy);
+
+	if (HealthBarComponent && HealthBarWidgetClass)
+	{
+		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
+	}
 
 	// Scale with the run: the world grows steadily more lethal over time.
 	float Difficulty = 1.f;
@@ -209,6 +226,49 @@ void ARLEnemyBase::HandleDamageTaken(float Damage, AActor* InstigatorActor)
 	{
 		LastDamager = InstigatorActor;
 	}
+
+	// RoR2-style: the bar exists only while the enemy is being fought.
+	if (!bDead)
+	{
+		RefreshHealthBar();
+	}
+}
+
+void ARLEnemyBase::RefreshHealthBar()
+{
+	if (!HealthBarComponent || !Attributes)
+	{
+		return;
+	}
+
+	if (URLEnemyHealthBarWidget* Widget = Cast<URLEnemyHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+	{
+		const float MaxHealth = Attributes->GetMaxHealth();
+		Widget->SetHealthFraction(MaxHealth > 0.f ? Attributes->GetHealth() / MaxHealth : 0.f);
+
+		// Bosses burn orange, elites violet, the rabble plain red.
+		if (bEmpowered)
+		{
+			Widget->SetBarColor(FLinearColor(1.f, 0.45f, 0.05f));
+		}
+		else if (bElite)
+		{
+			Widget->SetBarColor(FLinearColor(0.55f, 0.2f, 0.9f));
+		}
+	}
+
+	HealthBarComponent->SetVisibility(true);
+	GetWorldTimerManager().SetTimer(HealthBarTimerHandle,
+		FTimerDelegate::CreateUObject(this, &ARLEnemyBase::HideHealthBar),
+		HealthBarLingerSeconds, /*bLoop=*/false);
+}
+
+void ARLEnemyBase::HideHealthBar()
+{
+	if (HealthBarComponent)
+	{
+		HealthBarComponent->SetVisibility(false);
+	}
 }
 
 void ARLEnemyBase::HandleDeath()
@@ -218,6 +278,9 @@ void ARLEnemyBase::HandleDeath()
 		return;
 	}
 	bDead = true;
+
+	GetWorldTimerManager().ClearTimer(HealthBarTimerHandle);
+	HideHealthBar();
 
 	AActor* Killer = LastDamager;
 	GrantRewards(Killer);

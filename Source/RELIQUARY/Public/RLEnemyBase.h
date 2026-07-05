@@ -13,6 +13,8 @@
 
 class URLAbilitySystemComponent;
 class URLAttributeSet;
+class UUserWidget;
+class UWidgetComponent;
 class ARLEnemyBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRLEnemyKilledSignature, ARLEnemyBase*, Enemy, AActor*, Killer);
@@ -91,6 +93,16 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|AI")
 	void OnTouchAttack(AActor* Target);
 
+	// --- Health bar (RoR2-style: appears when hurt, hides when left alone) ---
+
+	/** Widget above the head; defaults to the native URLEnemyHealthBarWidget. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RELIQUARY|HealthBar")
+	TSubclassOf<UUserWidget> HealthBarWidgetClass;
+
+	/** Seconds after the last hit before the bar hides again. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|HealthBar")
+	float HealthBarLingerSeconds = 5.f;
+
 	UPROPERTY(BlueprintAssignable, Category = "RELIQUARY|Enemy")
 	FRLEnemyKilledSignature OnEnemyKilled;
 
@@ -119,6 +131,15 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<URLAttributeSet> Attributes;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UWidgetComponent> HealthBarComponent;
+
+	FTimerHandle HealthBarTimerHandle;
+
+	/** Updates fraction/tint, shows the bar, and re-arms the linger timer. */
+	void RefreshHealthBar();
+	void HideHealthBar();
 
 	bool bDead = false;
 
