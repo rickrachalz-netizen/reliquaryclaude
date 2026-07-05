@@ -19,6 +19,7 @@ URLMortalStrikeAbility::URLMortalStrikeAbility()
 	FinisherMultiplier = 1.f;
 	HitStopSeconds = 0.07f;
 	KnockbackStrength = 150.f;
+	bRootWhileSwinging = true;
 }
 
 float URLMortalStrikeAbility::GetVictimDamageMultiplier(AActor* Victim, float BaseMultiplier)

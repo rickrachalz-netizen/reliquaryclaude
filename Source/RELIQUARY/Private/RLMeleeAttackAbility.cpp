@@ -12,6 +12,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -69,6 +70,19 @@ void URLMeleeAttackAbility::PlayComboStage()
 	bComboQueued = false;
 	bHitFiredThisSwing = false;
 	FaceCameraDirection();
+
+	// Heavy strikes plant the feet until the ability ends.
+	if (bRootWhileSwinging && !bMovementLocked)
+	{
+		if (ACharacter* AvatarChar = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+		{
+			if (AvatarChar->GetCharacterMovement()->IsMovingOnGround())
+			{
+				AvatarChar->GetCharacterMovement()->DisableMovement();
+				bMovementLocked = true;
+			}
+		}
+	}
 
 	UAbilityTask_PlayMontageAndWait* Stage = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 		this, NAME_None, ComboMontages[ComboIndex], PlayRate, NAME_None, /*bStopWhenAbilityEnds=*/true);
@@ -219,6 +233,15 @@ void URLMeleeAttackAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
 		}
 	}
 	bAwaitingGrace = false;
+
+	if (bMovementLocked)
+	{
+		if (ACharacter* AvatarChar = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+		{
+			AvatarChar->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		}
+		bMovementLocked = false;
+	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }

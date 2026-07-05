@@ -63,6 +63,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Combo")
 	float ComboCooldownSeconds = 0.f;
 
+	/** Roots the avatar while swinging (heavy strikes); restores on end. */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Combo")
+	bool bRootWhileSwinging = false;
+
 	/** Seconds attacker and victims freeze on contact (0 disables). */
 	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Feel")
 	float HitStopSeconds = 0.05f;
@@ -104,6 +108,7 @@ protected:
 	bool bComboQueued = false;
 	bool bHitFiredThisSwing = false;
 	bool bAwaitingGrace = false;
+	bool bMovementLocked = false;
 	FTimerHandle GraceTimerHandle;
 	double ComboEndTimeSeconds = -1000.0;
 
