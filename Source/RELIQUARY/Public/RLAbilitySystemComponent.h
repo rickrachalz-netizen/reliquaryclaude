@@ -43,6 +43,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Abilities")
 	void NotifyActionReleased(FGameplayTag ActionTag);
 
+	/**
+	 * Newest-granted ability whose ActionTag matches — the one the slot
+	 * would actually fire (keystones and essences override older grants).
+	 * Returns the live per-actor instance so the HUD can read cooldowns.
+	 */
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Abilities")
+	class URLGameplayAbility* FindAbilityByActionTag(FGameplayTag ActionTag) const;
+
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Combat")
 	int32 GetAdaptabilityStacks() const { return AdaptabilityStacks; }
 

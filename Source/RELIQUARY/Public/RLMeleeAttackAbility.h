@@ -99,6 +99,9 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 
+	virtual float GetCooldownRemaining() const override;
+	virtual float GetCooldownDuration() const override;
+
 	/** Hook for BP subclasses: fired per victim hit. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Melee")
 	void OnMeleeHit(AActor* Victim);

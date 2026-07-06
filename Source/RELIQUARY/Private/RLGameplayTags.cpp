@@ -6,6 +6,7 @@ namespace RLTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Secondary, "Ability.Secondary", "Heavier hit on a short cooldown.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Utility,   "Ability.Utility",   "Mobility or defensive tool.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Special,   "Ability.Special",   "Big payoff ability, long cooldown.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Essence,   "Ability.Essence",   "Active granted by the major-slot essence.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Damage,          "Combat.Damage",          "Generic damage event.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Combat_Damage_Critical, "Combat.Damage.Critical", "Damage event that rolled a crit.");

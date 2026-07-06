@@ -6,6 +6,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "RLGameplayAbility.generated.h"
 
+class UTexture2D;
+
 /**
  * Every ability declares an ActionTag (usually one of Ability.Primary/
  * Secondary/Utility/Special). On activation the tag is reported to the
@@ -39,6 +41,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|Cost")
 	float ManaCost = 0.f;
 
+	/** HUD icon; when null the ability bar falls back to the keybind label. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|UI")
+	TObjectPtr<UTexture2D> AbilityIcon;
+
+	/** Name shown in tooltips/HUD (falls back to the class name when empty). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "RELIQUARY|UI")
+	FText AbilityDisplayName;
+
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo,
@@ -61,6 +71,18 @@ public:
 	/** Cooldown duration shortened by the owner's Haste. */
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Cooldown")
 	float GetHastedDuration(float BaseSeconds) const;
+
+	/**
+	 * Seconds of cooldown left right now (0 = ready). The ability bar polls
+	 * this every frame. Cooldowns here are the manual timestamp gates each
+	 * ability keeps, so overrides must mirror their CanActivateAbility math.
+	 */
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Cooldown")
+	virtual float GetCooldownRemaining() const { return 0.f; }
+
+	/** Full (hasted) cooldown length in seconds; 0 = no cooldown. */
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Cooldown")
+	virtual float GetCooldownDuration() const { return 0.f; }
 
 protected:
 	/** RoR2-style: player abilities snap to the camera's yaw, not run direction. */
