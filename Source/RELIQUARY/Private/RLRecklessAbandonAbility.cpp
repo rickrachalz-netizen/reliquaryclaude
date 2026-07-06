@@ -169,8 +169,25 @@ void URLRecklessAbandonAbility::LaunchDash(float Alpha)
 		bMovementLocked = false;
 	}
 
+	// Yaw-only visual facing; the launch itself follows the full 3D aim.
 	FaceCameraDirection();
-	DashDirection = AvatarChar->GetActorForwardVector().GetSafeNormal2D();
+
+	// Loader's gauntlet: launch along the camera's pitch and yaw. Aim up
+	// and it throws you into the air; midair you can dive.
+	const APlayerController* PC = CurrentActorInfo
+		? Cast<APlayerController>(CurrentActorInfo->PlayerController.Get()) : nullptr;
+	FVector Aim = PC ? PC->GetControlRotation().Vector() : AvatarChar->GetActorForwardVector();
+
+	// From the ground you can't punch into the floor you stand on.
+	if (!bAirborne && Aim.Z < 0.f)
+	{
+		Aim.Z = 0.f;
+	}
+	DashDirection = Aim.GetSafeNormal();
+	if (DashDirection.IsNearlyZero())
+	{
+		DashDirection = AvatarChar->GetActorForwardVector().GetSafeNormal2D();
+	}
 	if (DashDirection.IsNearlyZero())
 	{
 		DashDirection = FVector::ForwardVector;
@@ -179,7 +196,8 @@ void URLRecklessAbandonAbility::LaunchDash(float Alpha)
 	DashDamageMultiplier = FMath::Lerp(MinDamageMultiplier, 1.f, Alpha);
 	DashDistanceBudget = FMath::Lerp(MinDashDistance, MaxDashDistance, Alpha)
 		* (bAirborne ? AirDistanceMultiplier : 1.f);
-	DashStartLocation = AvatarChar->GetActorLocation();
+	LastDashLocation = AvatarChar->GetActorLocation();
+	DashDistanceTraveled = 0.f;
 	DashStartTimeSeconds = World->GetTimeSeconds();
 
 	// Flying keeps the line straight (no gravity) and works midair.
@@ -213,6 +231,10 @@ void URLRecklessAbandonAbility::DoDashTick()
 
 	const FVector Location = AvatarChar->GetActorLocation();
 
+	// Path length, not displacement along one axis: skims bend the route.
+	DashDistanceTraveled += static_cast<float>(FVector::Dist(Location, LastDashLocation));
+	LastDashLocation = Location;
+
 	// Sweep ahead of the capsule for the first thing the charge slams into.
 	float CapsuleRadius = 42.f;
 	if (const UCapsuleComponent* Capsule = AvatarChar->GetCapsuleComponent())
@@ -244,19 +266,33 @@ void URLRecklessAbandonAbility::DoDashTick()
 			continue;
 		}
 
-		// Walls, trees, rocks: anything solid stops a freight train.
 		if (Hit.bBlockingHit)
 		{
+			// Walkable ground deflects the punch along its surface — ride up
+			// ramps, skim flats. Only objects (walls, trees, rocks) stop it.
+			if (bSkimWalkableGround && Hit.ImpactNormal.Z >= SkimFloorNormalZ)
+			{
+				const FVector Deflected =
+					FVector::VectorPlaneProject(DashDirection, Hit.ImpactNormal).GetSafeNormal();
+				if (Deflected.IsNearlyZero())
+				{
+					// Near-vertical dive into flat ground: a landing, not an impact.
+					EndDashWithMomentum();
+					return;
+				}
+				DashDirection = Deflected;
+				break; // keep dashing along the deflected direction
+			}
+
 			ResolveObstacleImpact(HitActor, Hit.bStartPenetrating ? Location : Hit.ImpactPoint);
 			return;
 		}
 	}
 
-	const float Traveled = static_cast<float>(FVector::DotProduct(Location - DashStartLocation, DashDirection));
-	if (Traveled >= DashDistanceBudget)
+	if (DashDistanceTraveled >= DashDistanceBudget)
 	{
-		// A clean whiff costs nothing.
-		EndSelf(/*bWasCancelled=*/false);
+		// A clean whiff costs nothing — and keeps its momentum.
+		EndDashWithMomentum();
 		return;
 	}
 
@@ -264,7 +300,7 @@ void URLRecklessAbandonAbility::DoDashTick()
 	const float ExpectedSeconds = DashDistanceBudget / FMath::Max(DashSpeed, 1.f);
 	if (World->GetTimeSeconds() - DashStartTimeSeconds > ExpectedSeconds * 2.f + 0.5f)
 	{
-		EndSelf(/*bWasCancelled=*/false);
+		EndDashWithMomentum();
 		return;
 	}
 
@@ -273,7 +309,7 @@ void URLRecklessAbandonAbility::DoDashTick()
 
 void URLRecklessAbandonAbility::ResolveEnemyImpact(AActor* Victim)
 {
-	StopDashMovement();
+	StopDashMovement(/*bImpactBounce=*/true);
 
 	ACharacter* AvatarChar = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 	if (!AvatarChar || !Victim)
@@ -365,7 +401,7 @@ void URLRecklessAbandonAbility::ResolveEnemyImpact(AActor* Victim)
 
 void URLRecklessAbandonAbility::ResolveObstacleImpact(AActor* HitActor, const FVector& ImpactLocation)
 {
-	StopDashMovement();
+	StopDashMovement(/*bImpactBounce=*/true);
 
 	ACharacter* AvatarChar = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 
@@ -454,7 +490,7 @@ void URLRecklessAbandonAbility::ApplyImpactFeedback(AActor* Victim)
 	}
 }
 
-void URLRecklessAbandonAbility::StopDashMovement()
+void URLRecklessAbandonAbility::StopDashMovement(bool bImpactBounce)
 {
 	if (UWorld* World = GetWorld())
 	{
@@ -467,10 +503,44 @@ void URLRecklessAbandonAbility::StopDashMovement()
 		UCharacterMovementComponent* MoveComp = AvatarChar->GetCharacterMovement();
 		if (MoveComp->MovementMode == MOVE_Flying)
 		{
-			MoveComp->Velocity = FVector::ZeroVector;
 			MoveComp->SetMovementMode(MOVE_Falling); // resolves to walking on touch-down
+			if (bImpactBounce)
+			{
+				// Bonk: pop up and back off whatever stopped the punch.
+				// (A straight-down dive bounces purely upward.)
+				const FVector Back = -DashDirection.GetSafeNormal2D();
+				MoveComp->Velocity = Back * ImpactBounceBackSpeed
+					+ FVector(0.f, 0.f, ImpactBounceUpSpeed);
+			}
+			else
+			{
+				MoveComp->Velocity = FVector::ZeroVector;
+			}
 		}
 	}
+}
+
+void URLRecklessAbandonAbility::EndDashWithMomentum()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DashTickTimerHandle);
+	}
+	bDashing = false;
+
+	// Hand the dash velocity to gravity: aim up and you sail into an arc.
+	if (ACharacter* AvatarChar = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+	{
+		UCharacterMovementComponent* MoveComp = AvatarChar->GetCharacterMovement();
+		if (MoveComp->MovementMode == MOVE_Flying)
+		{
+			const FVector Carried = MoveComp->Velocity * MomentumCarryFraction;
+			MoveComp->SetMovementMode(MOVE_Falling);
+			MoveComp->Velocity = Carried;
+		}
+	}
+
+	EndSelf(/*bWasCancelled=*/false);
 }
 
 void URLRecklessAbandonAbility::EndSelf(bool bWasCancelled)
