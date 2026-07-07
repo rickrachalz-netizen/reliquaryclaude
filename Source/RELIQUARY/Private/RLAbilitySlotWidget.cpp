@@ -172,14 +172,11 @@ int32 URLAbilitySlotWidget::NativePaint(const FPaintArgs& Args, const FGeometry&
 		return MaxLayer;
 	}
 
-	// A solid-color brush renders untextured, so the vertex color is all
-	// that matters — no material or texture asset required for the dial.
+	// The wedge is a flat fill: vertex color (0,0,0,160) zeroes RGB whatever
+	// the texture is, so an untextured/default handle still paints a dark
+	// translucent slice — no material or texture asset required.
 	const FSlateBrush* WhiteBrush = FCoreStyle::Get().GetBrush(TEXT("WhiteBrush"));
 	const FSlateResourceHandle Handle = WhiteBrush->GetRenderingResource();
-	if (!Handle.IsValid())
-	{
-		return MaxLayer;
-	}
 
 	const FVector2f LocalSize = FVector2f(AllottedGeometry.GetLocalSize());
 	const FVector2f Center = LocalSize * 0.5f;

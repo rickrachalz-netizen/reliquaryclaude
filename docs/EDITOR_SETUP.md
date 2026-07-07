@@ -27,6 +27,8 @@ For each CSV in `/Data`, in the Content Browser under a new folder **`/Game/Data
 
 Paths are configured in `Config/DefaultGame.ini` under `[/Script/RELIQUARY.RLDataSubsystem]` if you prefer different locations.
 
+> **Schema note:** `Data/Essences.csv` gained a **`SourceEnemyId`** column (the spawn-card row name whose first kill drops that essence's shard) and now carries 12 enemy-themed essences alongside the 6 realm ones. If `DT_Essences` already exists, **reimport it** so the new column and rows land.
+
 ## 3. Reparent the existing Blueprints (required)
 
 Open each asset → File → Reparent Blueprint:
@@ -48,9 +50,21 @@ Open each asset → File → Reparent Blueprint:
 
 Add Input Actions (`IA_Primary`, `IA_Secondary`, `IA_Utility`, `IA_Special`, `IA_Interact`) to the existing Input Mapping Context (suggested: LMB, RMB, LShift, R, E — RoR2 muscle memory), then assign them on the character Blueprint's *Input|Abilities* properties.
 
+Also add three UI actions:
+
+| Input Action | Key(s) | Assign on character BP | Notes |
+|---|---|---|---|
+| `IA_EssenceAbility` | Q | *Input\|Abilities → Essence Ability Action* | Fires the major essence's active (the 5th kit slot). |
+| `IA_ToggleCharacterPanel` | C | *Input\|UI → Toggle Character Panel Action* | Opens/closes the character sheet. |
+| `IA_PauseMenu` | Esc **and** P | *Input\|UI → Pause Menu Action* | **In the IA asset, tick "Trigger When Paused"** or the key can't unpause. Map **both** Esc (works in a packaged build) and P (Esc ends a PIE session, so use P to test the menu in-editor). |
+
+All three are `UInputAction` assets added to the same Input Mapping Context. Each key press is `Started`.
+
 ## 6. Enemy Blueprints (content)
 
 Create Blueprints under **`/Game/Enemies`** parented to **`ARLEnemyBase`**, named to match `Data/SpawnCards.csv`: `BP_Wolf`, `BP_Goblin`, `BP_GoblinPack`, `BP_Orc`, `BP_Necromancer`, `BP_Skeleton`, `BP_DuskWolf`, `BP_StormWisp`, plus bosses `BP_BossAlphaWolf`, `BP_BossOrcWarlord`, `BP_BossBoneTyrant`, `BP_BossGodspawn`. Assign meshes from `Content/Fab` (wolf, goblin, orc, skeleton necromancer are already in the project) and tune `BaseHealth`/`BaseDamage`. Enemies chase the hero and strike in melee out of the box — `ARLEnemyBase` self-possesses an AI controller and runs a built-in chase (navmesh pathing when available, straight-line otherwise). Tune `AggroRange`/`AttackRange`/`AttackInterval` per Blueprint, implement `OnTouchAttack` for swing montages/VFX, or untick `bChaseHero` to drive movement with your own StateTree/BT instead. The Wild God arena needs a map (`L_WildGodArena`) containing a Blueprint of **`ARLWildGodBoss`**.
+
+> **Essence drops:** enemies spawned by the director or a challenge altar get their `EnemyTypeId` stamped automatically (from the spawn-card row name), so first-kill essence shards work with no extra setup. Only **hand-placed** enemy Blueprints need `EnemyTypeId` set in their defaults (e.g. `Wolf`) to drop an essence.
 
 Until these exist the director quietly spawns nothing — the loop still runs (gather → altar → extract).
 
@@ -61,10 +75,19 @@ Warrior/Rogue primaries and the Mage bolt work natively out of the box. To upgra
 ## 8. UI flows (content)
 
 - **Altar choice**: on `ARLChallengeAltar.OnChoiceRequested`, show two buttons calling `ChooseExtract` / `ChooseContinue`.
-- **Boon choice**: on `ARLUpgradeAltar.OnBoonsOffered`, show the three boon rows (`URLDataSubsystem` lookups) and call `PurchaseBoon(PlayerPawn, Index)`.
+- **Boon choice**: on `ARLUpgradeAltar.OnBoonsOffered`, show the three boon rows (`URLDataSubsystem` lookups) and call `PurchaseBoon(PlayerPawn, Index)`. Show the price from **`GetOfferedPrice(Index)`** — it is the base cost scaled by the run's difficulty, which is what `PurchaseBoon` actually charges.
 - **Crafting**: on `ARLCraftingStation.OnCraftingOpened`, list `URLCraftingLibrary::GetCraftableRecipes` and call `Craft`.
 - **Hero creation** (main menu): call `URLGameInstance::CreateHero(Name, Class, SpecId)` then open `L_Lobby`.
-- **Talents/Essences** (base camp): `SpendTalentPoint`, `SocketEssence`, `UpgradeEssence` on the game instance; call `RefreshHeroBuild` on the character afterwards.
+- **Talents** (base camp): `SpendTalentPoint` on the game instance; call `RefreshHeroBuild` on the character afterwards.
+- **Essence unlock toast** (optional): bind `URLGameInstance.OnEssenceUnlocked` to pop a "New Essence" notification. Essences are learned by picking up the shard a first-of-its-type kill drops — no altar needed.
+
+## 8b. Built-in HUD/menu widgets (mostly zero-setup)
+
+These new widgets all build their own tree in C++, so they work before any WBP exists. Reparent a WBP to the class to restyle (bind the optionally-bound sub-widgets by name).
+
+- **Ability icon bar** (`URLAbilityBarWidget`): RoR2-style five-slot bar (Primary/Secondary/Utility/Special/Essence) with a radial clock-dial cooldown sweep and seconds remaining. Add it once: open `WBP_RunHUD`, drag a **Create Widget** of class `RLAbilityBarWidget` into the layout (bottom-center), or place it directly if `WBP_RunHUD` is a Widget BP you can add children to. Give each `URLGameplayAbility` an `AbilityIcon` texture to replace the fallback keybind tile. The Essence slot stays hidden until a major essence is socketed.
+- **Character panel** (`URLCharacterPanelWidget`): press **C**. Left column lists every live stat; right column is the essence loadout — socket into Major / a free Minor, unsocket, and upgrade, all from here (works mid-run). No wiring needed beyond the `IA_ToggleCharacterPanel` input.
+- **Pause menu** (`URLPauseMenuWidget`): press **Esc** (or **P** in PIE). Resume / Return to Main Menu / Exit to Desktop. No wiring beyond `IA_PauseMenu` (remember "Trigger When Paused").
 
 ## 9. Feel pass: torso aim + enemy health bars
 
