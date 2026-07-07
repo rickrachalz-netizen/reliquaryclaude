@@ -18,6 +18,7 @@ class URLAttributeSet;
 class URLProgressionComponent;
 class URLEquipmentComponent;
 class URLRunPowerComponent;
+class URLCharacterPanelWidget;
 struct FInputActionValue;
 struct FOnAttributeChangeData;
 
@@ -78,6 +79,10 @@ protected:
 	/** Use altars, crates, forges */
 	UPROPERTY(EditAnywhere, Category="Input|Abilities")
 	UInputAction* InteractAction;
+
+	/** Toggle the character sheet (default C). */
+	UPROPERTY(EditAnywhere, Category="Input|UI")
+	UInputAction* ToggleCharacterPanelAction;
 
 public:
 
@@ -193,6 +198,16 @@ protected:
 	void OnSpecialAbilityReleased();
 	void OnEssenceAbilityReleased();
 	void OnInteract();
+	void OnToggleCharacterPanel();
+
+	/** Character sheet widget (created lazily on first toggle). */
+	UPROPERTY(EditAnywhere, Category="RELIQUARY|UI")
+	TSubclassOf<URLCharacterPanelWidget> CharacterPanelWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<URLCharacterPanelWidget> CharacterPanel;
+
+	bool bCharacterPanelOpen = false;
 
 	UFUNCTION()
 	void HandleDeath();

@@ -19,6 +19,9 @@
 #include "RLRunManagerSubsystem.h"
 #include "RLGameInstance.h"
 #include "RLInteractable.h"
+#include "RLCharacterPanelWidget.h"
+#include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/OverlapResult.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -71,6 +74,9 @@ ARELIQUARYCharacter::ARELIQUARYCharacter()
 	Progression = CreateDefaultSubobject<URLProgressionComponent>(TEXT("Progression"));
 	Equipment = CreateDefaultSubobject<URLEquipmentComponent>(TEXT("Equipment"));
 	RunPower = CreateDefaultSubobject<URLRunPowerComponent>(TEXT("RunPower"));
+
+	// UI defaults to the native C++ widgets; reparent WBPs to restyle.
+	CharacterPanelWidgetClass = URLCharacterPanelWidget::StaticClass();
 }
 
 UAbilitySystemComponent* ARELIQUARYCharacter::GetAbilitySystemComponent() const
@@ -131,6 +137,10 @@ void ARELIQUARYCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		if (InteractAction)
 		{
 			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnInteract);
+		}
+		if (ToggleCharacterPanelAction)
+		{
+			EnhancedInputComponent->BindAction(ToggleCharacterPanelAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnToggleCharacterPanel);
 		}
 	}
 	else
@@ -440,6 +450,44 @@ void ARELIQUARYCharacter::OnInteract()
 	if (Best)
 	{
 		IRLInteractable::Execute_Interact(Best, this);
+	}
+}
+
+void ARELIQUARYCharacter::OnToggleCharacterPanel()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	if (!CharacterPanel && CharacterPanelWidgetClass)
+	{
+		CharacterPanel = CreateWidget<URLCharacterPanelWidget>(PC, CharacterPanelWidgetClass);
+		if (CharacterPanel)
+		{
+			CharacterPanel->AddToViewport(10);
+		}
+	}
+	if (!CharacterPanel)
+	{
+		return;
+	}
+
+	bCharacterPanelOpen = !bCharacterPanelOpen;
+	if (bCharacterPanelOpen)
+	{
+		CharacterPanel->RefreshEssences();	// pick up any newly unlocked essences
+		CharacterPanel->SetVisibility(ESlateVisibility::Visible);
+		PC->SetShowMouseCursor(true);
+		// The panel doesn't pause; GameAndUI keeps gameplay input flowing.
+		PC->SetInputMode(FInputModeGameAndUI());
+	}
+	else
+	{
+		CharacterPanel->SetVisibility(ESlateVisibility::Collapsed);
+		PC->SetShowMouseCursor(false);
+		PC->SetInputMode(FInputModeGameOnly());
 	}
 }
 
