@@ -138,6 +138,15 @@ struct FRLHeroData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Hero")
 	TArray<FRLSocketedEssence> Essences;
 
+	/**
+	 * Essences this hero has learned. Enemy-sourced essences unlock the first
+	 * time that enemy type dies to the hero; world-sourced ones unlock when a
+	 * world event calls URLGameInstance::UnlockEssence. Only unlocked essences
+	 * can be socketed.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Hero")
+	TArray<FName> UnlockedEssenceIds;
+
 	/** Reliquary Shard level — raises essence rank caps (Heart of Azeroth analog). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Hero")
 	int32 ShardLevel = 1;
@@ -199,7 +208,32 @@ namespace RLBalance
 
 	/** Essence minor slots unlock at these hero levels (major slot at 10). */
 	constexpr int32 MajorEssenceUnlockLevel = 10;
-	constexpr int32 MinorEssenceUnlockLevels[2] = { 18, 26 };
+	constexpr int32 MinorEssenceUnlockLevels[3] = { 18, 26, 30 };
+
+	// --- Excess mana economy (the roguelike run currency) ---
+
+	/** Base excess mana a resource node yields when shattered (pre-scaling). */
+	constexpr int32 BaseNodeManaYield = 8;
+
+	/** Base excess mana a normal enemy drops on death (pre-scaling). */
+	constexpr int32 BaseEnemyManaReward = 5;
+
+	/** Elites drop this multiple of their base mana; bosses drop 4x (bEmpowered). */
+	constexpr float EliteManaMultiplier = 2.f;
+	constexpr float BossManaMultiplier = 4.f;
+
+	/** Mana packed into each physical orb; a reward splits into orbs of this size. */
+	constexpr int32 ManaOrbUnitValue = 5;
+
+	/**
+	 * Mana rewards and altar prices both scale with the run's difficulty
+	 * coefficient, so the economy holds its shape as the realm grows lethal
+	 * (Risk of Rain 2 chest-price idiom). Never rounds below 1.
+	 */
+	FORCEINLINE int32 ScaledManaReward(int32 Base, float Difficulty)
+	{
+		return FMath::Max(1, FMath::RoundToInt(Base * Difficulty));
+	}
 
 	/**
 	 * XP required to go from `Level` to `Level + 1`.

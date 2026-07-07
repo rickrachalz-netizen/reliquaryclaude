@@ -18,6 +18,8 @@ class URLAttributeSet;
 class URLProgressionComponent;
 class URLEquipmentComponent;
 class URLRunPowerComponent;
+class URLCharacterPanelWidget;
+class URLPauseMenuWidget;
 struct FInputActionValue;
 struct FOnAttributeChangeData;
 
@@ -71,9 +73,24 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input|Abilities")
 	UInputAction* SpecialAbilityAction;
 
+	/** Fifth slot: the active granted by a major-slot essence (default Q). */
+	UPROPERTY(EditAnywhere, Category="Input|Abilities")
+	UInputAction* EssenceAbilityAction;
+
 	/** Use altars, crates, forges */
 	UPROPERTY(EditAnywhere, Category="Input|Abilities")
 	UInputAction* InteractAction;
+
+	/** Toggle the character sheet (default C). */
+	UPROPERTY(EditAnywhere, Category="Input|UI")
+	UInputAction* ToggleCharacterPanelAction;
+
+	/**
+	 * Open/close the pause menu (default Esc, plus P for PIE). The Input
+	 * Action asset must have "Trigger When Paused" enabled to close again.
+	 */
+	UPROPERTY(EditAnywhere, Category="Input|UI")
+	UInputAction* PauseMenuAction;
 
 public:
 
@@ -182,11 +199,31 @@ protected:
 	void OnSecondaryAbility();
 	void OnUtilityAbility();
 	void OnSpecialAbility();
+	void OnEssenceAbility();
 	void OnPrimaryAbilityReleased();
 	void OnSecondaryAbilityReleased();
 	void OnUtilityAbilityReleased();
 	void OnSpecialAbilityReleased();
+	void OnEssenceAbilityReleased();
 	void OnInteract();
+	void OnToggleCharacterPanel();
+	void OnTogglePauseMenu();
+
+	/** Character sheet widget (created lazily on first toggle). */
+	UPROPERTY(EditAnywhere, Category="RELIQUARY|UI")
+	TSubclassOf<URLCharacterPanelWidget> CharacterPanelWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<URLCharacterPanelWidget> CharacterPanel;
+
+	bool bCharacterPanelOpen = false;
+
+	/** Pause menu widget (created lazily on first open). */
+	UPROPERTY(EditAnywhere, Category="RELIQUARY|UI")
+	TSubclassOf<URLPauseMenuWidget> PauseMenuWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<URLPauseMenuWidget> PauseMenu;
 
 	UFUNCTION()
 	void HandleDeath();

@@ -1,6 +1,8 @@
 #include "RLResourceNode.h"
 #include "RLResourcePickup.h"
+#include "RLManaOrbPickup.h"
 #include "RLRunManagerSubsystem.h"
+#include "RLTypes.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Engine/World.h"
@@ -66,14 +68,15 @@ void ARLResourceNode::Shatter(AActor* Breaker)
 		}
 	}
 
-	// The realm feeds you: shattering the world showers excess mana.
+	// The realm feeds you: shattering the world bursts into mana orbs,
+	// worth more the deeper and later the run has run.
 	if (World && ExcessManaYield > 0)
 	{
-		if (URLRunManagerSubsystem* RunManager =
-			World->GetGameInstance() ? World->GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
-		{
-			RunManager->AddExcessMana(ExcessManaYield);
-		}
+		URLRunManagerSubsystem* RunManager =
+			World->GetGameInstance() ? World->GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr;
+		const float Difficulty = RunManager ? RunManager->GetDifficultyCoefficient() : 1.f;
+		ARLManaOrbPickup::SpawnBurst(World, GetActorLocation(),
+			RLBalance::ScaledManaReward(ExcessManaYield, Difficulty));
 	}
 
 	OnShattered(Breaker);

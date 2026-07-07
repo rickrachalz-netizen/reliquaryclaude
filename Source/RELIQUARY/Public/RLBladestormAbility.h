@@ -62,6 +62,9 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 
+	virtual float GetCooldownRemaining() const override;
+	virtual float GetCooldownDuration() const override;
+
 	/** BP hook: per-tick VFX/SFX. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Bladestorm")
 	void OnSpinTick(int32 TickIndex);

@@ -19,6 +19,10 @@
 #include "RLRunManagerSubsystem.h"
 #include "RLGameInstance.h"
 #include "RLInteractable.h"
+#include "RLCharacterPanelWidget.h"
+#include "RLPauseMenuWidget.h"
+#include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/OverlapResult.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -71,6 +75,10 @@ ARELIQUARYCharacter::ARELIQUARYCharacter()
 	Progression = CreateDefaultSubobject<URLProgressionComponent>(TEXT("Progression"));
 	Equipment = CreateDefaultSubobject<URLEquipmentComponent>(TEXT("Equipment"));
 	RunPower = CreateDefaultSubobject<URLRunPowerComponent>(TEXT("RunPower"));
+
+	// UI defaults to the native C++ widgets; reparent WBPs to restyle.
+	CharacterPanelWidgetClass = URLCharacterPanelWidget::StaticClass();
+	PauseMenuWidgetClass = URLPauseMenuWidget::StaticClass();
 }
 
 UAbilitySystemComponent* ARELIQUARYCharacter::GetAbilitySystemComponent() const
@@ -122,9 +130,23 @@ void ARELIQUARYCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnSpecialAbilityReleased);
 			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnSpecialAbilityReleased);
 		}
+		if (EssenceAbilityAction)
+		{
+			EnhancedInputComponent->BindAction(EssenceAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnEssenceAbility);
+			EnhancedInputComponent->BindAction(EssenceAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnEssenceAbilityReleased);
+			EnhancedInputComponent->BindAction(EssenceAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnEssenceAbilityReleased);
+		}
 		if (InteractAction)
 		{
 			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnInteract);
+		}
+		if (ToggleCharacterPanelAction)
+		{
+			EnhancedInputComponent->BindAction(ToggleCharacterPanelAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnToggleCharacterPanel);
+		}
+		if (PauseMenuAction)
+		{
+			EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnTogglePauseMenu);
 		}
 	}
 	else
@@ -369,6 +391,7 @@ void ARELIQUARYCharacter::OnPrimaryAbility()
 void ARELIQUARYCharacter::OnSecondaryAbility() { ActivateKitAbility(RLTags::Ability_Secondary); }
 void ARELIQUARYCharacter::OnUtilityAbility()   { ActivateKitAbility(RLTags::Ability_Utility); }
 void ARELIQUARYCharacter::OnSpecialAbility()   { ActivateKitAbility(RLTags::Ability_Special); }
+void ARELIQUARYCharacter::OnEssenceAbility()   { ActivateKitAbility(RLTags::Ability_Essence); }
 
 void ARELIQUARYCharacter::ReleaseKitAbility(FGameplayTag ActionTag)
 {
@@ -384,6 +407,7 @@ void ARELIQUARYCharacter::OnPrimaryAbilityReleased()   { ReleaseKitAbility(RLTag
 void ARELIQUARYCharacter::OnSecondaryAbilityReleased() { ReleaseKitAbility(RLTags::Ability_Secondary); }
 void ARELIQUARYCharacter::OnUtilityAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Utility); }
 void ARELIQUARYCharacter::OnSpecialAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Special); }
+void ARELIQUARYCharacter::OnEssenceAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Essence); }
 
 void ARELIQUARYCharacter::ApplyTemporarySpeedMultiplier(float Multiplier, float Seconds)
 {
@@ -433,6 +457,83 @@ void ARELIQUARYCharacter::OnInteract()
 	{
 		IRLInteractable::Execute_Interact(Best, this);
 	}
+}
+
+void ARELIQUARYCharacter::OnToggleCharacterPanel()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	if (!CharacterPanel && CharacterPanelWidgetClass)
+	{
+		CharacterPanel = CreateWidget<URLCharacterPanelWidget>(PC, CharacterPanelWidgetClass);
+		if (CharacterPanel)
+		{
+			CharacterPanel->AddToViewport(10);
+		}
+	}
+	if (!CharacterPanel)
+	{
+		return;
+	}
+
+	bCharacterPanelOpen = !bCharacterPanelOpen;
+	if (bCharacterPanelOpen)
+	{
+		CharacterPanel->RefreshEssences();	// pick up any newly unlocked essences
+		CharacterPanel->SetVisibility(ESlateVisibility::Visible);
+		PC->SetShowMouseCursor(true);
+		// The panel doesn't pause; GameAndUI keeps gameplay input flowing.
+		PC->SetInputMode(FInputModeGameAndUI());
+	}
+	else
+	{
+		CharacterPanel->SetVisibility(ESlateVisibility::Collapsed);
+		PC->SetShowMouseCursor(false);
+		PC->SetInputMode(FInputModeGameOnly());
+	}
+}
+
+void ARELIQUARYCharacter::OnTogglePauseMenu()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	// Pressing the key while paused closes the menu (needs "Trigger When
+	// Paused" on the Input Action; the widget's key handler is the backup).
+	if (UGameplayStatics::IsGamePaused(this))
+	{
+		if (PauseMenu)
+		{
+			PauseMenu->ResumeGame();
+		}
+		return;
+	}
+
+	if (!PauseMenu && PauseMenuWidgetClass)
+	{
+		PauseMenu = CreateWidget<URLPauseMenuWidget>(PC, PauseMenuWidgetClass);
+		if (PauseMenu)
+		{
+			PauseMenu->AddToViewport(100);
+		}
+	}
+	if (!PauseMenu)
+	{
+		return;
+	}
+
+	PauseMenu->SetVisibility(ESlateVisibility::Visible);
+	UGameplayStatics::SetGamePaused(this, true);
+	PC->SetShowMouseCursor(true);
+	PC->SetInputMode(FInputModeGameAndUI());
+	PauseMenu->SetKeyboardFocus();	// so Esc/P can close it even if paused input stalls
 }
 
 // --- Attribute plumbing ---

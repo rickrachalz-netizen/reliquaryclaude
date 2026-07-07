@@ -12,6 +12,7 @@ class URLDataSubsystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRLHeroChangedSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRLLeveledUpSignature, int32, NewLevel, bool, bMaxLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRLEssenceUnlockedSignature, FName, EssenceId);
 
 /**
  * Owns everything that survives between runs. The game autosaves whenever
@@ -79,12 +80,31 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Essences")
 	int32 GetUnlockedEssenceSlots() const;
 
+	/** Only unlocked essences can be socketed (first-kill shards unlock them). */
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Essences")
 	bool SocketEssence(FName EssenceId, int32 SlotIndex);
+
+	/** Clears a slot; returns false when the slot was already empty. */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Essences")
+	bool UnsocketEssence(int32 SlotIndex);
 
 	/** Spends UpgradeMaterial from the stash to raise an essence's rank. */
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Essences")
 	bool UpgradeEssence(FName EssenceId);
+
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Essences")
+	bool IsEssenceUnlocked(FName EssenceId) const;
+
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Essences")
+	TArray<FName> GetUnlockedEssenceIds() const;
+
+	/**
+	 * Permanently teaches the active hero an essence. Saves to disk right
+	 * away (like the Wild God kill) so a mid-run quit can't lose it.
+	 * Returns false when it was already unlocked or the id is unknown.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Essences")
+	bool UnlockEssence(FName EssenceId);
 
 	// --- Stash & equipment (base camp only) ---
 
@@ -116,6 +136,10 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "RELIQUARY|Progression")
 	FRLLeveledUpSignature OnLeveledUp;
+
+	/** Fired when a shard pickup (or world event) teaches a new essence. */
+	UPROPERTY(BlueprintAssignable, Category = "RELIQUARY|Essences")
+	FRLEssenceUnlockedSignature OnEssenceUnlocked;
 
 protected:
 	UPROPERTY()

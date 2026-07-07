@@ -45,6 +45,13 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
+	/**
+	 * What collecting actually grants. Base: ItemId x Count into the run
+	 * inventory. Subclasses override for other payloads (mana orbs, essence
+	 * shards) and inherit the magnet + overlap plumbing for free.
+	 */
+	virtual void GrantTo(AActor* Collector);
+
 	UFUNCTION()
 	void HandleOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

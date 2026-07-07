@@ -54,6 +54,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Run")
 	void HandleFinalBossKilled(bool bWildGod);
 
+	/**
+	 * Quit the current run from a menu: drop all run-scoped state without
+	 * banking (carried resources are forfeit, as on death). Banked crates and
+	 * XP already earned this run stay. No-op at base camp.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Run")
+	void AbandonRun();
+
 	/** Called by challenge altars to move the state machine along. */
 	void SetRunState(ERLRunState NewState);
 

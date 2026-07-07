@@ -65,6 +65,32 @@ void URLAbilitySystemComponent::NotifyActionReleased(FGameplayTag ActionTag)
 	}
 }
 
+URLGameplayAbility* URLAbilitySystemComponent::FindAbilityByActionTag(FGameplayTag ActionTag) const
+{
+	if (!ActionTag.IsValid())
+	{
+		return nullptr;
+	}
+
+	// Newest-first, mirroring TryActivateByActionTag's slot-override rule.
+	const TArray<FGameplayAbilitySpec>& Specs = GetActivatableAbilities();
+	for (int32 Index = Specs.Num() - 1; Index >= 0; --Index)
+	{
+		const FGameplayAbilitySpec& Spec = Specs[Index];
+		URLGameplayAbility* Ability = Cast<URLGameplayAbility>(Spec.Ability);
+		if (Ability && Ability->ActionTag == ActionTag)
+		{
+			// Cooldown timestamps live on the instanced-per-actor copy.
+			if (URLGameplayAbility* Instance = Cast<URLGameplayAbility>(Spec.GetPrimaryInstance()))
+			{
+				return Instance;
+			}
+			return Ability;
+		}
+	}
+	return nullptr;
+}
+
 void URLAbilitySystemComponent::NotifyActionUsed(const FGameplayTag& ActionTag)
 {
 	if (!ActionTag.IsValid())

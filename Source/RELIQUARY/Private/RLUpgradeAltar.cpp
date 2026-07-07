@@ -3,6 +3,7 @@
 #include "RLDataTypes.h"
 #include "RLRunManagerSubsystem.h"
 #include "RLRunPowerComponent.h"
+#include "RLTypes.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Components/StaticMeshComponent.h"
 
@@ -36,7 +37,24 @@ void ARLUpgradeAltar::RollOffers()
 
 	FRLXoshiro256 Rng(static_cast<uint64>(static_cast<uint32>(OfferSeed)));
 	Data->DrawRandomBoons(ChoiceCount, RunManager->GetAllBoonStacks(), Rng, OfferedBoons);
+
+	// Lock in each price at roll time: a boon costs its base ManaCost scaled
+	// by the run's current difficulty (keeps pace with the mana rewards).
+	const float Difficulty = RunManager->GetDifficultyCoefficient();
+	OfferedPrices.Reset();
+	OfferedPrices.Reserve(OfferedBoons.Num());
+	for (const FName& BoonId : OfferedBoons)
+	{
+		const FRLBoonRow* Boon = Data->FindBoon(BoonId);
+		OfferedPrices.Add(Boon ? RLBalance::ScaledManaReward(Boon->ManaCost, Difficulty) : 0);
+	}
+
 	bOffersRolled = true;
+}
+
+int32 ARLUpgradeAltar::GetOfferedPrice(int32 ChoiceIndex) const
+{
+	return OfferedPrices.IsValidIndex(ChoiceIndex) ? OfferedPrices[ChoiceIndex] : -1;
 }
 
 bool ARLUpgradeAltar::CanInteract_Implementation(AActor* Interactor) const
@@ -84,7 +102,9 @@ bool ARLUpgradeAltar::PurchaseBoon(AActor* Purchaser, int32 ChoiceIndex)
 		return false;
 	}
 
-	if (!RunManager->SpendExcessMana(Boon->ManaCost))
+	// Charge the difficulty-scaled price locked in when the offers rolled.
+	const int32 Price = OfferedPrices.IsValidIndex(ChoiceIndex) ? OfferedPrices[ChoiceIndex] : Boon->ManaCost;
+	if (!RunManager->SpendExcessMana(Price))
 	{
 		return false;
 	}
@@ -92,7 +112,7 @@ bool ARLUpgradeAltar::PurchaseBoon(AActor* Purchaser, int32 ChoiceIndex)
 	if (!RunPower->ApplyBoon(ASC, BoonId))
 	{
 		// Refund on the (unlikely) application failure.
-		RunManager->AddExcessMana(Boon->ManaCost);
+		RunManager->AddExcessMana(Price);
 		return false;
 	}
 

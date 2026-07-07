@@ -161,6 +161,22 @@ test steps rather than claiming a build passed.
 - **Feel systems:** torso-aims-at-camera (`URLHeroAnimInstance`, needs one-time
   AnimBP wiring) and RoR2-style enemy health bars (`URLEnemyHealthBarWidget`,
   zero-setup) are in.
+- **HUD/menus (zero-content native, WBP-restylable):** ability icon bar with a
+  natively painted radial cooldown dial (`URLAbilityBarWidget` +
+  `URLAbilitySlotWidget`, fed by `URLGameplayAbility::GetCooldownRemaining/
+  Duration` and `URLAbilitySystemComponent::FindAbilityByActionTag`); a
+  character panel toggled with C listing all stats + the essence loadout
+  (`URLCharacterPanelWidget`); a pause menu on Esc/P (`URLPauseMenuWidget`).
+- **Essences (playable):** each enemy type drops a shard the first time it dies
+  to the hero (`ARLEssenceShardPickup` → `URLGameInstance::UnlockEssence`, saved
+  immediately). 1 major slot (active + passive) + 3 minor (passive), socketed
+  from the character panel anytime. The major active is a dedicated 5th input
+  slot (`Ability.Essence`, Q); `URLEssenceHowlAbility` is the first native one.
+  Enemy identity is `ARLEnemyBase::EnemyTypeId` (spawn-card row name), stamped
+  by the director/challenge altar.
+- **Excess mana:** physical magnetized orbs (`ARLManaOrbPickup`) burst from
+  nodes and kills, totals scaled by the difficulty coefficient (elite ×2, boss
+  ×4); altar boon prices scale to match. Tuning lives in `RLBalance`.
 
 ## Working agreements (from prior sessions)
 

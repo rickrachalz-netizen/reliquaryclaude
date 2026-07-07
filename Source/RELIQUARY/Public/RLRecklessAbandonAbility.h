@@ -157,6 +157,9 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 
+	virtual float GetCooldownRemaining() const override;
+	virtual float GetCooldownDuration() const override;
+
 	/** 0..1 while charging (drive a HUD meter or glow from this). */
 	UFUNCTION(BlueprintPure, Category = "RELIQUARY|RecklessAbandon")
 	float GetChargeAlpha() const;

@@ -22,7 +22,7 @@ This document maps every system from the production map to its implementation. G
 | Evolving identity at max level | `URLGameInstance::GetDisplayedClassName()` — dominant talent tree's `EvolvedTitle` at level 30 |
 | Wide stat set + Adaptability | `URLAttributeSet` (13 attributes + meta damage); Adaptability stacks on `URLAbilitySystemComponent` |
 | Leveling 1–30, exponential XP | `RLBalance::XPForNextLevel` (+35%/level), `URLGameInstance::AddExperience` |
-| Heart of Azeroth-style essences | Reliquary Shard: `FRLSocketedEssence`, `Data/Essences.csv`, major slot at 10, minors at 18/26 |
+| Heart of Azeroth-style essences | Reliquary Shard: `FRLSocketedEssence`, `Data/Essences.csv`, major slot at 10, minors at 18/26/30. Enemy-sourced essences unlock on the first kill of that type (`ARLEnemyBase::EnemyTypeId` → `ARLEssenceShardPickup` → `URLGameInstance::UnlockEssence`); major slot grants an active on a dedicated 5th input (`Ability.Essence`, Q), any slot grants the ranked passive. Socketed from the character panel (`URLCharacterPanelWidget`). |
 | Fun, crunchy combat | GAS pipeline: `URLGameplayAbility` → `URLDamageEffect` → `URLDamageExecution` (stat scale, crit, Adaptability, armor) |
 | Destructible world → resources | `ARLResourceNode::TakeDamage` — abilities damage non-GAS blockers as world objects |
 | Ten interconnected levels | `Data/Zones.csv` (Verdant Threshold → The Last Door), traveled by `URLRunManagerSubsystem` |
@@ -32,7 +32,7 @@ This document maps every system from the production map to its implementation. G
 | Enemy spawning | `ARLEnemyDirector` — RoR2-style credits, spawn cards in `Data/SpawnCards.csv` |
 | Death forfeits resources | `URLRunManagerSubsystem::HandleHeroDeath` (banked crates stay safe) |
 | Autosave at base camp only, locked RNG | `ARLBaseCampGameMode::BeginPlay` saves; seed locked at embark |
-| Excess mana + altar choices | `URLRunManagerSubsystem` currency; `ARLUpgradeAltar` offers 3 seeded boons from `Data/Boons.csv` |
+| Excess mana + altar choices | `URLRunManagerSubsystem` currency, dropped as physical magnetized orbs (`ARLManaOrbPickup`) from nodes and kills, totals scaled by the difficulty coefficient (elite ×2, boss ×4; `RLBalance` tuning). `ARLUpgradeAltar` offers 3 seeded boons from `Data/Boons.csv`, priced by `GetOfferedPrice` (base cost × difficulty at roll time). |
 | Temporary by design | `URLRunPowerComponent`; everything resets in `URLRunManagerSubsystem::ResetRunState` |
 | Crafting is the heart | `Data/Items.csv` + `Data/Recipes.csv` + `URLCraftingLibrary` + `ARLCraftingStation` |
 | Distinct materials, planned routes | No generic "wood": Oakheart, Ironwood, Feywood... each zone lists its reliable spawns |

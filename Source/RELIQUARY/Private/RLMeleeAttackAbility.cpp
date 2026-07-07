@@ -208,6 +208,22 @@ bool URLMeleeAttackAbility::CanActivateAbility(const FGameplayAbilitySpecHandle 
 	return true;
 }
 
+float URLMeleeAttackAbility::GetCooldownDuration() const
+{
+	return ComboCooldownSeconds > 0.f ? GetHastedDuration(ComboCooldownSeconds) : 0.f;
+}
+
+float URLMeleeAttackAbility::GetCooldownRemaining() const
+{
+	const UWorld* World = GetWorld();
+	if (!World || ComboCooldownSeconds <= 0.f)
+	{
+		return 0.f;
+	}
+	return FMath::Max(0.f,
+		static_cast<float>(ComboEndTimeSeconds + GetHastedDuration(ComboCooldownSeconds) - World->GetTimeSeconds()));
+}
+
 void URLMeleeAttackAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo,

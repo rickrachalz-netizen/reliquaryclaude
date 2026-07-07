@@ -89,6 +89,22 @@ void URLRecklessAbandonAbility::ActivateAbility(const FGameplayAbilitySpecHandle
 		0.05f, /*bLoop=*/true);
 }
 
+float URLRecklessAbandonAbility::GetCooldownDuration() const
+{
+	return CooldownSeconds > 0.f ? GetHastedDuration(CooldownSeconds) : 0.f;
+}
+
+float URLRecklessAbandonAbility::GetCooldownRemaining() const
+{
+	const UWorld* World = GetWorld();
+	if (!World || CooldownSeconds <= 0.f)
+	{
+		return 0.f;
+	}
+	return FMath::Max(0.f,
+		static_cast<float>(LastEndTimeSeconds + GetHastedDuration(CooldownSeconds) - World->GetTimeSeconds()));
+}
+
 float URLRecklessAbandonAbility::GetChargeAlpha() const
 {
 	const UWorld* World = GetWorld();

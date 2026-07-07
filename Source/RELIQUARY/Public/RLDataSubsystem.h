@@ -32,6 +32,9 @@ public:
 	const FRLSpecRow* FindSpec(FName SpecId) const;
 	const FRLEssenceRow* FindEssence(FName EssenceId) const;
 
+	/** The essence sourced from an enemy type, or nullptr when none exists. */
+	const FRLEssenceRow* FindEssenceForEnemy(FName EnemyTypeId, FName& OutEssenceId) const;
+
 	/** All talents belonging to one spec's tree. */
 	void GetTalentsForTree(FName TreeId, TArray<TPair<FName, const FRLTalentRow*>>& Out) const;
 

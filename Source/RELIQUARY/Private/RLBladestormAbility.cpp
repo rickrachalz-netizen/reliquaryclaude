@@ -128,6 +128,22 @@ bool URLBladestormAbility::CanActivateAbility(const FGameplayAbilitySpecHandle H
 	return true;
 }
 
+float URLBladestormAbility::GetCooldownDuration() const
+{
+	return CooldownSeconds > 0.f ? GetHastedDuration(CooldownSeconds) : 0.f;
+}
+
+float URLBladestormAbility::GetCooldownRemaining() const
+{
+	const UWorld* World = GetWorld();
+	if (!World || CooldownSeconds <= 0.f)
+	{
+		return 0.f;
+	}
+	return FMath::Max(0.f,
+		static_cast<float>(LastEndTimeSeconds + GetHastedDuration(CooldownSeconds) - World->GetTimeSeconds()));
+}
+
 void URLBladestormAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo,

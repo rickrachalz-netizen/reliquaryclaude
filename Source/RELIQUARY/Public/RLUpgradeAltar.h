@@ -36,6 +36,14 @@ public:
 	const TArray<FName>& GetOfferedBoons() const { return OfferedBoons; }
 
 	/**
+	 * Excess-mana price of the boon at ChoiceIndex — the boon's base cost
+	 * scaled by the run's difficulty when this altar rolled, so the boon UI
+	 * shows what PurchaseBoon will actually charge. -1 for an invalid index.
+	 */
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Altar")
+	int32 GetOfferedPrice(int32 ChoiceIndex) const;
+
+	/**
 	 * Buys the boon at ChoiceIndex for the interacting hero. Spends excess
 	 * mana; fails silently if it can't be afforded. Consumes the altar.
 	 */
@@ -60,6 +68,8 @@ protected:
 	virtual void BeginPlay() override;
 
 	TArray<FName> OfferedBoons;
+	/** Per-offer price, difficulty-scaled at roll time (parallel to OfferedBoons). */
+	TArray<int32> OfferedPrices;
 	int32 OfferSeed = 0;
 	bool bConsumed = false;
 	bool bOffersRolled = false;
