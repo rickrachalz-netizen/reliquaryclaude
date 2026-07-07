@@ -19,6 +19,7 @@ class URLProgressionComponent;
 class URLEquipmentComponent;
 class URLRunPowerComponent;
 class URLCharacterPanelWidget;
+class URLPauseMenuWidget;
 struct FInputActionValue;
 struct FOnAttributeChangeData;
 
@@ -83,6 +84,13 @@ protected:
 	/** Toggle the character sheet (default C). */
 	UPROPERTY(EditAnywhere, Category="Input|UI")
 	UInputAction* ToggleCharacterPanelAction;
+
+	/**
+	 * Open/close the pause menu (default Esc, plus P for PIE). The Input
+	 * Action asset must have "Trigger When Paused" enabled to close again.
+	 */
+	UPROPERTY(EditAnywhere, Category="Input|UI")
+	UInputAction* PauseMenuAction;
 
 public:
 
@@ -199,6 +207,7 @@ protected:
 	void OnEssenceAbilityReleased();
 	void OnInteract();
 	void OnToggleCharacterPanel();
+	void OnTogglePauseMenu();
 
 	/** Character sheet widget (created lazily on first toggle). */
 	UPROPERTY(EditAnywhere, Category="RELIQUARY|UI")
@@ -208,6 +217,13 @@ protected:
 	TObjectPtr<URLCharacterPanelWidget> CharacterPanel;
 
 	bool bCharacterPanelOpen = false;
+
+	/** Pause menu widget (created lazily on first open). */
+	UPROPERTY(EditAnywhere, Category="RELIQUARY|UI")
+	TSubclassOf<URLPauseMenuWidget> PauseMenuWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<URLPauseMenuWidget> PauseMenu;
 
 	UFUNCTION()
 	void HandleDeath();

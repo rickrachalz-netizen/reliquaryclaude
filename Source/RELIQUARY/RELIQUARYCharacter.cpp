@@ -20,6 +20,7 @@
 #include "RLGameInstance.h"
 #include "RLInteractable.h"
 #include "RLCharacterPanelWidget.h"
+#include "RLPauseMenuWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/OverlapResult.h"
@@ -77,6 +78,7 @@ ARELIQUARYCharacter::ARELIQUARYCharacter()
 
 	// UI defaults to the native C++ widgets; reparent WBPs to restyle.
 	CharacterPanelWidgetClass = URLCharacterPanelWidget::StaticClass();
+	PauseMenuWidgetClass = URLPauseMenuWidget::StaticClass();
 }
 
 UAbilitySystemComponent* ARELIQUARYCharacter::GetAbilitySystemComponent() const
@@ -141,6 +143,10 @@ void ARELIQUARYCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		if (ToggleCharacterPanelAction)
 		{
 			EnhancedInputComponent->BindAction(ToggleCharacterPanelAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnToggleCharacterPanel);
+		}
+		if (PauseMenuAction)
+		{
+			EnhancedInputComponent->BindAction(PauseMenuAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnTogglePauseMenu);
 		}
 	}
 	else
@@ -489,6 +495,45 @@ void ARELIQUARYCharacter::OnToggleCharacterPanel()
 		PC->SetShowMouseCursor(false);
 		PC->SetInputMode(FInputModeGameOnly());
 	}
+}
+
+void ARELIQUARYCharacter::OnTogglePauseMenu()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	// Pressing the key while paused closes the menu (needs "Trigger When
+	// Paused" on the Input Action; the widget's key handler is the backup).
+	if (UGameplayStatics::IsGamePaused(this))
+	{
+		if (PauseMenu)
+		{
+			PauseMenu->ResumeGame();
+		}
+		return;
+	}
+
+	if (!PauseMenu && PauseMenuWidgetClass)
+	{
+		PauseMenu = CreateWidget<URLPauseMenuWidget>(PC, PauseMenuWidgetClass);
+		if (PauseMenu)
+		{
+			PauseMenu->AddToViewport(100);
+		}
+	}
+	if (!PauseMenu)
+	{
+		return;
+	}
+
+	PauseMenu->SetVisibility(ESlateVisibility::Visible);
+	UGameplayStatics::SetGamePaused(this, true);
+	PC->SetShowMouseCursor(true);
+	PC->SetInputMode(FInputModeGameAndUI());
+	PauseMenu->SetKeyboardFocus();	// so Esc/P can close it even if paused input stalls
 }
 
 // --- Attribute plumbing ---

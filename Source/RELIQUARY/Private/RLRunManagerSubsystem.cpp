@@ -281,6 +281,18 @@ void URLRunManagerSubsystem::FinishRun(bool bDied)
 	UGameplayStatics::OpenLevel(GetGameInstance(), FName(*BaseCampMapName));
 }
 
+void URLRunManagerSubsystem::AbandonRun()
+{
+	if (!IsOnRun())
+	{
+		return;
+	}
+	// Deliberately not FinishRun: quitting mid-run forfeits the haul and does
+	// not travel home (the caller opens the main menu).
+	ResetRunState();
+	SetRunState(ERLRunState::AtBaseCamp);
+}
+
 void URLRunManagerSubsystem::ResetRunState()
 {
 	// Temporary by design: every scrap of roguelike power evaporates here.
