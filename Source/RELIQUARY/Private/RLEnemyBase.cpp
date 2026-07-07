@@ -6,7 +6,9 @@
 #include "RLGameplayTags.h"
 #include "RLGameInstance.h"
 #include "RLRunManagerSubsystem.h"
+#include "RLDataSubsystem.h"
 #include "RLResourcePickup.h"
+#include "RLEssenceShardPickup.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
@@ -333,6 +335,27 @@ void ARLEnemyBase::GrantRewards(AActor* Killer)
 			{
 				Pickup->ItemId = DropItemId;
 				Pickup->Count = 1;
+			}
+		}
+	}
+
+	// First kill of this enemy type: drop the shard that unlocks its essence.
+	// Uncollected shards are no loss — the check re-drops on the next kill.
+	if (EnemyTypeId != NAME_None)
+	{
+		URLGameInstance* RLGI = Cast<URLGameInstance>(GI);
+		URLDataSubsystem* Data = GI->GetSubsystem<URLDataSubsystem>();
+		FName EssenceId = NAME_None;
+		if (RLGI && Data && Data->FindEssenceForEnemy(EnemyTypeId, EssenceId)
+			&& !RLGI->IsEssenceUnlocked(EssenceId))
+		{
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			if (ARLEssenceShardPickup* Shard = GetWorld()->SpawnActor<ARLEssenceShardPickup>(
+				ARLEssenceShardPickup::StaticClass(), GetActorLocation() + FVector(0.f, 0.f, 80.f),
+				FRotator::ZeroRotator, Params))
+			{
+				Shard->EssenceId = EssenceId;
 			}
 		}
 	}

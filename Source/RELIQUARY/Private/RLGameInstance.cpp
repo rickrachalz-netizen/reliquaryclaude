@@ -261,7 +261,7 @@ bool URLGameInstance::SocketEssence(FName EssenceId, int32 SlotIndex)
 {
 	FRLHeroData* Hero = GetActiveHero();
 	URLDataSubsystem* Data = GetData();
-	if (!Hero || !Data || !Data->FindEssence(EssenceId))
+	if (!Hero || !Data || !Data->FindEssence(EssenceId) || !IsEssenceUnlocked(EssenceId))
 	{
 		return false;
 	}
@@ -281,6 +281,50 @@ bool URLGameInstance::SocketEssence(FName EssenceId, int32 SlotIndex)
 	Socketed.SlotIndex = SlotIndex;
 	Socketed.Rank = 1;
 	Hero->Essences.Add(Socketed);
+	return true;
+}
+
+bool URLGameInstance::UnsocketEssence(int32 SlotIndex)
+{
+	FRLHeroData* Hero = GetActiveHero();
+	if (!Hero)
+	{
+		return false;
+	}
+	const int32 Removed = Hero->Essences.RemoveAll([&](const FRLSocketedEssence& E)
+	{
+		return E.SlotIndex == SlotIndex;
+	});
+	return Removed > 0;
+}
+
+bool URLGameInstance::IsEssenceUnlocked(FName EssenceId) const
+{
+	const FRLHeroData* Hero = GetActiveHero();
+	return Hero && Hero->UnlockedEssenceIds.Contains(EssenceId);
+}
+
+TArray<FName> URLGameInstance::GetUnlockedEssenceIds() const
+{
+	const FRLHeroData* Hero = GetActiveHero();
+	return Hero ? Hero->UnlockedEssenceIds : TArray<FName>();
+}
+
+bool URLGameInstance::UnlockEssence(FName EssenceId)
+{
+	FRLHeroData* Hero = GetActiveHero();
+	URLDataSubsystem* Data = GetData();
+	if (!Hero || !Data || !Data->FindEssence(EssenceId) || Hero->UnlockedEssenceIds.Contains(EssenceId))
+	{
+		return false;
+	}
+
+	Hero->UnlockedEssenceIds.Add(EssenceId);
+
+	// A first-kill unlock is permanent the moment it happens, even though
+	// active runs are never otherwise saved (Wild God precedent).
+	SaveToDisk();
+	OnEssenceUnlocked.Broadcast(EssenceId);
 	return true;
 }
 

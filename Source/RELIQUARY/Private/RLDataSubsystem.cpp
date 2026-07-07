@@ -44,6 +44,25 @@ const FRLSpawnCardRow* URLDataSubsystem::FindSpawnCard(FName CardId) const { ret
 const FRLSpecRow* URLDataSubsystem::FindSpec(FName SpecId) const { return FindRowChecked<FRLSpecRow>(SpecTable, SpecId); }
 const FRLEssenceRow* URLDataSubsystem::FindEssence(FName EssenceId) const { return FindRowChecked<FRLEssenceRow>(EssenceTable, EssenceId); }
 
+const FRLEssenceRow* URLDataSubsystem::FindEssenceForEnemy(FName EnemyTypeId, FName& OutEssenceId) const
+{
+	OutEssenceId = NAME_None;
+	if (!EssenceTable || EnemyTypeId == NAME_None)
+	{
+		return nullptr;
+	}
+	const FRLEssenceRow* Found = nullptr;
+	EssenceTable->ForeachRow<FRLEssenceRow>(TEXT("RLData"), [&](const FName& RowName, const FRLEssenceRow& Row)
+	{
+		if (Row.SourceEnemyId == EnemyTypeId)
+		{
+			Found = &Row;
+			OutEssenceId = RowName;
+		}
+	});
+	return Found;
+}
+
 const FRLZoneRow* URLDataSubsystem::FindZone(int32 ZoneIndex) const
 {
 	if (!ZoneTable)

@@ -43,6 +43,15 @@ void ARLResourcePickup::Tick(float DeltaSeconds)
 	}
 }
 
+void ARLResourcePickup::GrantTo(AActor* Collector)
+{
+	if (URLRunManagerSubsystem* RunManager =
+		GetGameInstance() ? GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
+	{
+		RunManager->AddRunResource(ItemId, Count);
+	}
+}
+
 void ARLResourcePickup::HandleOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -52,12 +61,7 @@ void ARLResourcePickup::HandleOverlap(UPrimitiveComponent* OverlappedComp, AActo
 		return;
 	}
 
-	if (URLRunManagerSubsystem* RunManager =
-		GetGameInstance() ? GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
-	{
-		RunManager->AddRunResource(ItemId, Count);
-	}
-
+	GrantTo(OtherActor);
 	OnCollected(OtherActor);
 	Destroy();
 }

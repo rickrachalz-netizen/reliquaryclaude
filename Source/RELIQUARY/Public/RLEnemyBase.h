@@ -43,6 +43,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Enemy")
 	float BaseMoveSpeed = 450.f;
 
+	/**
+	 * Spawn-card row name identifying this enemy's type (Wolf, OrcBruiser...).
+	 * The director and challenge altar stamp it on spawn; set it in the
+	 * defaults of any Blueprint placed by hand. Drives first-kill essence
+	 * shard drops — NAME_None means no essence can drop.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Enemy")
+	FName EnemyTypeId = NAME_None;
+
 	// --- Rewards ---
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Rewards")

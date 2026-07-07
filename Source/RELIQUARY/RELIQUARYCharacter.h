@@ -71,6 +71,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input|Abilities")
 	UInputAction* SpecialAbilityAction;
 
+	/** Fifth slot: the active granted by a major-slot essence (default Q). */
+	UPROPERTY(EditAnywhere, Category="Input|Abilities")
+	UInputAction* EssenceAbilityAction;
+
 	/** Use altars, crates, forges */
 	UPROPERTY(EditAnywhere, Category="Input|Abilities")
 	UInputAction* InteractAction;
@@ -182,10 +186,12 @@ protected:
 	void OnSecondaryAbility();
 	void OnUtilityAbility();
 	void OnSpecialAbility();
+	void OnEssenceAbility();
 	void OnPrimaryAbilityReleased();
 	void OnSecondaryAbilityReleased();
 	void OnUtilityAbilityReleased();
 	void OnSpecialAbilityReleased();
+	void OnEssenceAbilityReleased();
 	void OnInteract();
 
 	UFUNCTION()

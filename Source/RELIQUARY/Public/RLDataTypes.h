@@ -395,4 +395,12 @@ struct FRLEssenceRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Essence")
 	int32 UpgradeCostPerRank = 10;
+
+	/**
+	 * Spawn-card row name of the enemy whose first kill drops this essence's
+	 * shard. NAME_None = not enemy-sourced; those essences stay locked until
+	 * a world event unlocks them explicitly.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Essence")
+	FName SourceEnemyId = NAME_None;
 };

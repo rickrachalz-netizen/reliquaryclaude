@@ -122,6 +122,12 @@ void ARELIQUARYCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnSpecialAbilityReleased);
 			EnhancedInputComponent->BindAction(SpecialAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnSpecialAbilityReleased);
 		}
+		if (EssenceAbilityAction)
+		{
+			EnhancedInputComponent->BindAction(EssenceAbilityAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnEssenceAbility);
+			EnhancedInputComponent->BindAction(EssenceAbilityAction, ETriggerEvent::Completed, this, &ARELIQUARYCharacter::OnEssenceAbilityReleased);
+			EnhancedInputComponent->BindAction(EssenceAbilityAction, ETriggerEvent::Canceled, this, &ARELIQUARYCharacter::OnEssenceAbilityReleased);
+		}
 		if (InteractAction)
 		{
 			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ARELIQUARYCharacter::OnInteract);
@@ -369,6 +375,7 @@ void ARELIQUARYCharacter::OnPrimaryAbility()
 void ARELIQUARYCharacter::OnSecondaryAbility() { ActivateKitAbility(RLTags::Ability_Secondary); }
 void ARELIQUARYCharacter::OnUtilityAbility()   { ActivateKitAbility(RLTags::Ability_Utility); }
 void ARELIQUARYCharacter::OnSpecialAbility()   { ActivateKitAbility(RLTags::Ability_Special); }
+void ARELIQUARYCharacter::OnEssenceAbility()   { ActivateKitAbility(RLTags::Ability_Essence); }
 
 void ARELIQUARYCharacter::ReleaseKitAbility(FGameplayTag ActionTag)
 {
@@ -384,6 +391,7 @@ void ARELIQUARYCharacter::OnPrimaryAbilityReleased()   { ReleaseKitAbility(RLTag
 void ARELIQUARYCharacter::OnSecondaryAbilityReleased() { ReleaseKitAbility(RLTags::Ability_Secondary); }
 void ARELIQUARYCharacter::OnUtilityAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Utility); }
 void ARELIQUARYCharacter::OnSpecialAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Special); }
+void ARELIQUARYCharacter::OnEssenceAbilityReleased()   { ReleaseKitAbility(RLTags::Ability_Essence); }
 
 void ARELIQUARYCharacter::ApplyTemporarySpeedMultiplier(float Multiplier, float Seconds)
 {

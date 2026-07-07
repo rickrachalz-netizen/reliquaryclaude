@@ -138,6 +138,15 @@ struct FRLHeroData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Hero")
 	TArray<FRLSocketedEssence> Essences;
 
+	/**
+	 * Essences this hero has learned. Enemy-sourced essences unlock the first
+	 * time that enemy type dies to the hero; world-sourced ones unlock when a
+	 * world event calls URLGameInstance::UnlockEssence. Only unlocked essences
+	 * can be socketed.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Hero")
+	TArray<FName> UnlockedEssenceIds;
+
 	/** Reliquary Shard level — raises essence rank caps (Heart of Azeroth analog). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Hero")
 	int32 ShardLevel = 1;
@@ -199,7 +208,7 @@ namespace RLBalance
 
 	/** Essence minor slots unlock at these hero levels (major slot at 10). */
 	constexpr int32 MajorEssenceUnlockLevel = 10;
-	constexpr int32 MinorEssenceUnlockLevels[2] = { 18, 26 };
+	constexpr int32 MinorEssenceUnlockLevels[3] = { 18, 26, 30 };
 
 	/**
 	 * XP required to go from `Level` to `Level + 1`.

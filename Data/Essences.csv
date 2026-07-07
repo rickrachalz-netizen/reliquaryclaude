@@ -1,7 +1,19 @@
-Name,DisplayName,Description,MajorAbility,StatsPerRank,UpgradeMaterialId,UpgradeCostPerRank
-HeartOfTheFallen,Heart of the Fallen God,The base camp's host still gives. +60 health per rank.,/Game/Abilities/GA_EssenceBulwark.GA_EssenceBulwark_C,"(Health=60)",ManalithShard,10
-EverflowingSpring,Everflowing Spring,A spring that was old when the realm was young. +1.5 mana regen and +25 mana per rank.,/Game/Abilities/GA_EssenceSurge.GA_EssenceSurge_C,"(ManaRegen=1.5,Mana=25)",ManalithShard,10
-HuntersInstinct,Hunter's Instinct,The realm rewards those who watch. +3% crit chance per rank.,/Game/Abilities/GA_EssenceMark.GA_EssenceMark_C,"(CritChance=0.03)",ManalithShard,10
-WildfireCore,Wildfire Core,A coal from the first fire. +6 to all primary stats per rank.,/Game/Abilities/GA_EssenceWildfire.GA_EssenceWildfire_C,"(Strength=6,Agility=6,Intellect=6)",ManalithShard,12
-WhisperOfWoods,Whisper of the Woods,The trees speak fast here. +3% haste per rank.,/Game/Abilities/GA_EssenceWhisper.GA_EssenceWhisper_C,"(Haste=0.03)",ManalithShard,10
-PatientStone,The Patient Stone,Stone outlasts everything. +25 armor and +0.5 health regen per rank.,/Game/Abilities/GA_EssenceStone.GA_EssenceStone_C,"(Armor=25,HealthRegen=0.5)",ManalithShard,10
+Name,DisplayName,Description,MajorAbility,StatsPerRank,UpgradeMaterialId,UpgradeCostPerRank,SourceEnemyId
+HeartOfTheFallen,Heart of the Fallen God,The base camp's host still gives. +60 health per rank.,/Game/Abilities/GA_EssenceBulwark.GA_EssenceBulwark_C,"(Health=60)",ManalithShard,10,
+EverflowingSpring,Everflowing Spring,A spring that was old when the realm was young. +1.5 mana regen and +25 mana per rank.,/Game/Abilities/GA_EssenceSurge.GA_EssenceSurge_C,"(ManaRegen=1.5,Mana=25)",ManalithShard,10,
+HuntersInstinct,Hunter's Instinct,The realm rewards those who watch. +3% crit chance per rank.,/Game/Abilities/GA_EssenceMark.GA_EssenceMark_C,"(CritChance=0.03)",ManalithShard,10,
+WildfireCore,Wildfire Core,A coal from the first fire. +6 to all primary stats per rank.,/Game/Abilities/GA_EssenceWildfire.GA_EssenceWildfire_C,"(Strength=6,Agility=6,Intellect=6)",ManalithShard,12,
+WhisperOfWoods,Whisper of the Woods,The trees speak fast here. +3% haste per rank.,/Game/Abilities/GA_EssenceWhisper.GA_EssenceWhisper_C,"(Haste=0.03)",ManalithShard,10,
+PatientStone,The Patient Stone,Stone outlasts everything. +25 armor and +0.5 health regen per rank.,/Game/Abilities/GA_EssenceStone.GA_EssenceStone_C,"(Armor=25,HealthRegen=0.5)",ManalithShard,10,
+AlphasEssence,Essence of the Alpha,Torn from the pack leader. Grants Alpha's Howl — a shout that demoralizes nearby foes. +15 move speed per rank.,/Script/RELIQUARY.RLEssenceHowlAbility,"(MoveSpeed=15)",ManalithShard,10,Wolf
+CutpurseEssence,Cutpurse's Cunning,A goblin's quick fingers made stone. +3 agility per rank.,/Game/Abilities/GA_EssenceCutpurse.GA_EssenceCutpurse_C,"(Agility=3)",ManalithShard,10,GoblinMinion
+MobRuleEssence,Mob Rule,Strength in numbers distilled to one shard. +1% haste per rank.,/Game/Abilities/GA_EssenceMobRule.GA_EssenceMobRule_C,"(Haste=0.01)",ManalithShard,10,GoblinPack
+BruisersMarrow,Bruiser's Marrow,Orcish resilience in the bone. +3 strength and +10 health per rank.,/Game/Abilities/GA_EssenceBruiser.GA_EssenceBruiser_C,"(Strength=3,Health=10)",ManalithShard,10,OrcBruiser
+GravebindersWhisper,Gravebinder's Whisper,The necromancer's dark study lingers. +3 intellect and +0.3 mana regen per rank.,/Game/Abilities/GA_EssenceGravebinder.GA_EssenceGravebinder_C,"(Intellect=3,ManaRegen=0.3)",ManalithShard,10,Necromancer
+DeathlessOssuary,Deathless Ossuary,Bones that refused to stay down. +8 armor per rank.,/Game/Abilities/GA_EssenceOssuary.GA_EssenceOssuary_C,"(Armor=8)",ManalithShard,10,RisenSkeleton
+DuskstalkerEssence,Duskstalker's Patience,The night-hunter's killing focus. +1% crit chance per rank.,/Game/Abilities/GA_EssenceDuskstalker.GA_EssenceDuskstalker_C,"(CritChance=0.01)",ManalithShard,10,DuskWolfPack
+StormheartEssence,Stormheart,A wisp of caged lightning. +1.5% haste and +2 intellect per rank.,/Game/Abilities/GA_EssenceStormheart.GA_EssenceStormheart_C,"(Haste=0.015,Intellect=2)",ManalithShard,10,StormWisp
+GodfangEssence,Godfang,The alpha wolf-god's fury. +4 strength and +10 move speed per rank.,/Game/Abilities/GA_EssenceGodfang.GA_EssenceGodfang_C,"(Strength=4,MoveSpeed=10)",ManalithShard,12,BossAlphaWolf
+WarlordsDominion,Warlord's Dominion,The orc warlord's command made manifest. +5 strength and +5% crit damage per rank.,/Game/Abilities/GA_EssenceWarlord.GA_EssenceWarlord_C,"(Strength=5,CritDamage=0.05)",ManalithShard,12,BossOrcWarlord
+TyrantsPhylactery,Tyrant's Phylactery,The bone tyrant's unlife bound in a shard. +25 health and +6 armor per rank.,/Game/Abilities/GA_EssenceTyrant.GA_EssenceTyrant_C,"(Health=25,Armor=6)",ManalithShard,12,BossBoneTyrant
+GodspawnIchor,Godspawn Ichor,Blood of a broken god. +3 to all primary stats per rank.,/Game/Abilities/GA_EssenceGodspawn.GA_EssenceGodspawn_C,"(Strength=3,Agility=3,Intellect=3)",ManalithShard,12,BossGodspawn

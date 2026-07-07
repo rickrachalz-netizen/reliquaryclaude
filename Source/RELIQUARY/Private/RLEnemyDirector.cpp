@@ -122,6 +122,7 @@ void ARLEnemyDirector::TrySpend()
 		}
 
 		Enemy->bElite = bElite;
+		Enemy->EnemyTypeId = CardId;	// drives first-kill essence shard drops
 		Credits -= Cost;
 		AliveEnemies.Add(Enemy);
 	}

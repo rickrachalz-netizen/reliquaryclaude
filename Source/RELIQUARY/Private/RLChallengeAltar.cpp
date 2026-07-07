@@ -120,10 +120,12 @@ void ARLChallengeAltar::SpawnChallengeBoss(AActor* Interactor)
 
 	// Resolve the zone's boss card; fall back to the editor-set class.
 	UClass* BossClass = FallbackBossClass.Get();
+	FName BossCardId = NAME_None;
 	if (Data && RunManager)
 	{
 		if (const FRLZoneRow* Zone = Data->FindZone(RunManager->GetCurrentZoneIndex()))
 		{
+			BossCardId = Zone->BossCardId;
 			if (const FRLSpawnCardRow* Card = Data->FindSpawnCard(Zone->BossCardId))
 			{
 				if (UClass* Loaded = Card->EnemyClass.LoadSynchronous())
@@ -152,6 +154,7 @@ void ARLChallengeAltar::SpawnChallengeBoss(AActor* Interactor)
 	if (ChallengeBoss)
 	{
 		ChallengeBoss->bEmpowered = true;
+		ChallengeBoss->EnemyTypeId = BossCardId;	// first-kill essence shard drops
 		ChallengeBoss->OnEnemyKilled.AddDynamic(this, &ARLChallengeAltar::HandleBossKilled);
 	}
 }
