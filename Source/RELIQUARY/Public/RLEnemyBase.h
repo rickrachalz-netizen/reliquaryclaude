@@ -58,7 +58,7 @@ public:
 	int32 XPReward = 20;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Rewards")
-	int32 ExcessManaReward = 5;
+	int32 ExcessManaReward = RLBalance::BaseEnemyManaReward;
 
 	/** Optional material drop (bosses: GodboneSliver, elites: ManalithShard). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Rewards")

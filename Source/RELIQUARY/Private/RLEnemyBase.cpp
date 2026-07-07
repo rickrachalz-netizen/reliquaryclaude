@@ -9,6 +9,7 @@
 #include "RLDataSubsystem.h"
 #include "RLResourcePickup.h"
 #include "RLEssenceShardPickup.h"
+#include "RLManaOrbPickup.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
@@ -83,6 +84,7 @@ void ARLEnemyBase::BeginPlay()
 	{
 		HealthMult *= 3.f;
 		DamageMult *= 1.5f;
+		ExcessManaReward = FMath::RoundToInt(ExcessManaReward * RLBalance::EliteManaMultiplier);
 		AbilitySystemComponent->AddLooseGameplayTag(RLTags::Enemy_Elite);
 		if (DropItemId == NAME_None)
 		{
@@ -95,7 +97,7 @@ void ARLEnemyBase::BeginPlay()
 		HealthMult *= 4.f;
 		DamageMult *= 1.5f;
 		XPReward *= 5;
-		ExcessManaReward *= 4;
+		ExcessManaReward = FMath::RoundToInt(ExcessManaReward * RLBalance::BossManaMultiplier);
 		AbilitySystemComponent->AddLooseGameplayTag(RLTags::Enemy_Boss);
 	}
 
@@ -318,9 +320,13 @@ void ARLEnemyBase::GrantRewards(AActor* Killer)
 		RLGI->AddExperience(XPReward);
 	}
 
-	if (URLRunManagerSubsystem* RunManager = GI->GetSubsystem<URLRunManagerSubsystem>())
+	// Death scatters mana orbs, scaled by how deadly the run has become.
+	if (ExcessManaReward > 0)
 	{
-		RunManager->AddExcessMana(ExcessManaReward);
+		URLRunManagerSubsystem* RunManager = GI->GetSubsystem<URLRunManagerSubsystem>();
+		const float Difficulty = RunManager ? RunManager->GetDifficultyCoefficient() : 1.f;
+		ARLManaOrbPickup::SpawnBurst(GetWorld(), GetActorLocation(),
+			RLBalance::ScaledManaReward(ExcessManaReward, Difficulty));
 	}
 
 	if (DropItemId != NAME_None && DropCount > 0)
