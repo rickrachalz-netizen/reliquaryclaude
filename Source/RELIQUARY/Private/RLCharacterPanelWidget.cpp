@@ -345,20 +345,20 @@ void URLCharacterPanelWidget::RefreshEssences()
 			GET_FUNCTION_NAME_CHECKED(URLCharacterPanelWidget, HandleUnsocketMinor3),
 		};
 
-		for (int32 Slot = 0; Slot < 4; ++Slot)
+		for (int32 SlotIdx = 0; SlotIdx < 4; ++SlotIdx)
 		{
-			const FString SlotName = (Slot == 0) ? TEXT("Major") : FString::Printf(TEXT("Minor %d"), Slot);
+			const FString SlotName = (SlotIdx == 0) ? TEXT("Major") : FString::Printf(TEXT("Minor %d"), SlotIdx);
 
 			// Level at which this slot unlocks (for the "Locked" hint).
-			const int32 RequiredLevel = (Slot == 0)
+			const int32 RequiredLevel = (SlotIdx == 0)
 				? RLBalance::MajorEssenceUnlockLevel
-				: RLBalance::MinorEssenceUnlockLevels[Slot - 1];
+				: RLBalance::MinorEssenceUnlockLevels[SlotIdx - 1];
 
 			const FRLSocketedEssence* Socketed = Hero.Essences.FindByPredicate(
-				[Slot](const FRLSocketedEssence& E) { return E.SlotIndex == Slot; });
+				[SlotIdx](const FRLSocketedEssence& E) { return E.SlotIndex == SlotIdx; });
 
 			FString Content;
-			if (Slot >= UnlockedSlots)
+			if (SlotIdx >= UnlockedSlots)
 			{
 				Content = FString::Printf(TEXT("%s: Locked (Lv %d)"), *SlotName, RequiredLevel);
 			}
@@ -382,13 +382,13 @@ void URLCharacterPanelWidget::RefreshEssences()
 			}
 
 			// Only offer Unsocket on a filled, unlocked slot.
-			if (Socketed && Slot < UnlockedSlots)
+			if (Socketed && SlotIdx < UnlockedSlots)
 			{
 				UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
 				UTextBlock* Text = MakeText(WidgetTree, TEXT("Unsocket"), 10, false);
 				Button->AddChild(Text);
 				FScriptDelegate Del;
-				Del.BindUFunction(this, UnsocketHandlers[Slot]);
+				Del.BindUFunction(this, UnsocketHandlers[SlotIdx]);
 				Button->OnClicked.Add(Del);
 				RowBox->AddChildToHorizontalBox(Button);
 			}
@@ -451,13 +451,13 @@ void URLCharacterPanelWidget::SocketEssenceIntoFreeMinor(FName EssenceId)
 	const int32 UnlockedSlots = GI->GetUnlockedEssenceSlots();
 
 	// First unlocked minor slot (1..3) not already occupied.
-	for (int32 Slot = 1; Slot < UnlockedSlots; ++Slot)
+	for (int32 SlotIdx = 1; SlotIdx < UnlockedSlots; ++SlotIdx)
 	{
 		const bool bTaken = Hero.Essences.ContainsByPredicate(
-			[Slot](const FRLSocketedEssence& E) { return E.SlotIndex == Slot; });
+			[SlotIdx](const FRLSocketedEssence& E) { return E.SlotIndex == SlotIdx; });
 		if (!bTaken)
 		{
-			SocketEssenceIntoSlot(EssenceId, Slot);
+			SocketEssenceIntoSlot(EssenceId, SlotIdx);
 			return;
 		}
 	}
