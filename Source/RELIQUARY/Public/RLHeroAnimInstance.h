@@ -43,5 +43,23 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Aim")
 	float AimInterpSpeed = 12.f;
 
+	/**
+	 * Global animation play-rate multiplier driven by Haste. 1.0 at 0% haste,
+	 * rising to (1 + MaxHastePlayRateBonus) as effective haste (base attribute
+	 * plus the live Battle Trance haste bonus) reaches 100%, on a convex curve
+	 * so it speeds up faster and faster. Bind this to the Play Rate of the
+	 * locomotion sequence/blend-space players in the AnimGraph.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "RELIQUARY|Haste")
+	float HastePlayRate = 1.f;
+
+	/** Extra play rate at 100% effective haste (0.20 = up to +20%). */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Haste")
+	float MaxHastePlayRateBonus = 0.20f;
+
+	/** Curve shape; >1 makes the speed-up accelerate as haste grows. */
+	UPROPERTY(EditDefaultsOnly, Category = "RELIQUARY|Haste")
+	float HastePlayRateExponent = 2.f;
+
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 };

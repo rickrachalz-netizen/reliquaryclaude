@@ -275,16 +275,20 @@ void URLCharacterPanelWidget::RefreshStats()
 	{
 		AdaptStacks = RLASC->GetAdaptabilityStacks();
 	}
-	float TrancePct = 0.f;
-	if (const ARELIQUARYCharacter* Hero = Cast<ARELIQUARYCharacter>(GetOwningPlayerPawn()))
-	{
-		TrancePct = Hero->GetBattleTranceIntensity();
-	}
+	// Battle Trance's haste/heal/speed bonuses live outside the AttributeSet and
+	// are folded in at each point of consumption, so the raw attribute values
+	// never reflect them. Read the live bonuses off the hero here so Haste,
+	// Health Regen, and Move Speed show what the player actually has right now.
+	const ARELIQUARYCharacter* Hero = Cast<ARELIQUARYCharacter>(GetOwningPlayerPawn());
+	const float TrancePct = Hero ? Hero->GetBattleTranceIntensity() : 0.f;
+	const float TranceHaste = Hero ? Hero->GetTranceHasteBonus() : 0.f;
+	const float TranceHealMul = Hero ? (1.f + Hero->GetTranceHealingBonus()) : 1.f;
+	const float TranceSpeedMul = Hero ? (1.f + Hero->GetTranceSpeedBonus()) : 1.f;
 
 	// Order must match GStatLabels above.
 	TArray<FString> Values;
 	Values.Add(FString::Printf(TEXT("%.0f / %.0f"), Attr(URLAttributeSet::GetHealthAttribute()), Attr(URLAttributeSet::GetMaxHealthAttribute())));
-	Values.Add(FString::Printf(TEXT("%.1f/s"), Attr(URLAttributeSet::GetHealthRegenAttribute())));
+	Values.Add(FString::Printf(TEXT("%.1f/s"), Attr(URLAttributeSet::GetHealthRegenAttribute()) * TranceHealMul));
 	Values.Add(FString::Printf(TEXT("%.0f / %.0f"), Attr(URLAttributeSet::GetManaAttribute()), Attr(URLAttributeSet::GetMaxManaAttribute())));
 	Values.Add(FString::Printf(TEXT("%.1f/s"), Attr(URLAttributeSet::GetManaRegenAttribute())));
 	Values.Add(FString::Printf(TEXT("%.0f"), Attr(URLAttributeSet::GetStrengthAttribute())));
@@ -292,9 +296,9 @@ void URLCharacterPanelWidget::RefreshStats()
 	Values.Add(FString::Printf(TEXT("%.0f"), Attr(URLAttributeSet::GetIntellectAttribute())));
 	Values.Add(FString::Printf(TEXT("%.1f%%"), Attr(URLAttributeSet::GetCritChanceAttribute()) * 100.f));
 	Values.Add(FString::Printf(TEXT("x%.2f"), Attr(URLAttributeSet::GetCritDamageAttribute())));
-	Values.Add(FString::Printf(TEXT("%.1f%%"), Attr(URLAttributeSet::GetHasteAttribute()) * 100.f));
+	Values.Add(FString::Printf(TEXT("%.1f%%"), (Attr(URLAttributeSet::GetHasteAttribute()) + TranceHaste) * 100.f));
 	Values.Add(FString::Printf(TEXT("%.0f"), Attr(URLAttributeSet::GetArmorAttribute())));
-	Values.Add(FString::Printf(TEXT("%.0f"), Attr(URLAttributeSet::GetMoveSpeedAttribute())));
+	Values.Add(FString::Printf(TEXT("%.0f"), Attr(URLAttributeSet::GetMoveSpeedAttribute()) * TranceSpeedMul));
 	Values.Add(FString::Printf(TEXT("%.1f%% (x%d)"), Attr(URLAttributeSet::GetAdaptabilityAttribute()) * 100.f, AdaptStacks));
 	Values.Add(FString::Printf(TEXT("%.0f%%"), TrancePct * 100.f));
 
