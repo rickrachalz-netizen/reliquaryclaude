@@ -6,6 +6,7 @@
 #include "RLDataSubsystem.h"
 #include "RLDataTypes.h"
 #include "RLTypes.h"
+#include "RLRunManagerSubsystem.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Blueprint/WidgetTree.h"
@@ -37,6 +38,21 @@ namespace
 		Block->SetText(FText::FromString(Text));
 		Block->SetFont(FCoreStyle::GetDefaultFontStyle(bBold ? "Bold" : "Regular", FontSize));
 		return Block;
+	}
+
+	FText ItemDisplayName(const URLDataSubsystem* Data, FName ItemId)
+	{
+		if (Data)
+		{
+			if (const FRLItemRow* Row = Data->FindItem(ItemId))
+			{
+				if (!Row->DisplayName.IsEmpty())
+				{
+					return Row->DisplayName;
+				}
+			}
+		}
+		return FText::FromName(ItemId);
 	}
 }
 
@@ -129,6 +145,62 @@ void URLEssencePanelEntry::HandleUpgrade()
 }
 
 // ---------------------------------------------------------------------------
+// URLGearPanelEntry
+// ---------------------------------------------------------------------------
+
+void URLGearPanelEntry::Setup(URLCharacterPanelWidget* InOwner, FName InItemId, bool bInEquipped, ERLEquipSlot InSlot)
+{
+	Owner = InOwner;
+	ItemId = InItemId;
+	bEquipped = bInEquipped;
+	Slot = InSlot;
+
+	if (!WidgetTree || WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	const URLGameInstance* GI = Cast<URLGameInstance>(GetGameInstance());
+	const URLDataSubsystem* Data = GI ? GI->GetSubsystem<URLDataSubsystem>() : nullptr;
+
+	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	WidgetTree->RootWidget = Row;
+
+	UTextBlock* Label = MakeText(WidgetTree, ItemDisplayName(Data, ItemId).ToString(), 12, false);
+	if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(Label))
+	{
+		LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		LabelSlot->SetVerticalAlignment(VAlign_Center);
+	}
+
+	UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
+	Button->AddChild(MakeText(WidgetTree, bEquipped ? TEXT("Unequip") : TEXT("Equip"), 10, false));
+	FScriptDelegate Del;
+	Del.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(URLGearPanelEntry, HandleAction));
+	Button->OnClicked.Add(Del);
+	if (UHorizontalBoxSlot* BtnSlot = Row->AddChildToHorizontalBox(Button))
+	{
+		BtnSlot->SetPadding(FMargin(2.f, 2.f));
+	}
+}
+
+void URLGearPanelEntry::HandleAction()
+{
+	if (!Owner.IsValid())
+	{
+		return;
+	}
+	if (bEquipped)
+	{
+		Owner->UnequipSlot(Slot);
+	}
+	else
+	{
+		Owner->EquipItemById(ItemId);
+	}
+}
+
+// ---------------------------------------------------------------------------
 // URLCharacterPanelWidget
 // ---------------------------------------------------------------------------
 
@@ -214,6 +286,30 @@ bool URLCharacterPanelWidget::Initialize()
 			RightCol->AddChildToVerticalBox(ScrollBounds);
 		}
 
+		// Third column: materials (placeholder inventory) + gear.
+		{
+			USizeBox* InvBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+			InvBox->SetWidthOverride(300.f);
+			UVerticalBox* InvCol = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			InvBox->AddChild(InvCol);
+			if (UHorizontalBoxSlot* ColSlot = Columns->AddChildToHorizontalBox(InvBox))
+			{
+				ColSlot->SetPadding(FMargin(24.f, 0.f, 0.f, 0.f));
+			}
+
+			InvCol->AddChildToVerticalBox(MakeText(WidgetTree, TEXT("Materials"), 14, true));
+			MaterialList = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			InvCol->AddChildToVerticalBox(MaterialList);
+
+			if (UVerticalBoxSlot* GearHeaderSlot =
+				InvCol->AddChildToVerticalBox(MakeText(WidgetTree, TEXT("Gear"), 14, true)))
+			{
+				GearHeaderSlot->SetPadding(FMargin(0.f, 12.f, 0.f, 0.f));
+			}
+			GearList = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			InvCol->AddChildToVerticalBox(GearList);
+		}
+
 		WidgetTree->RootWidget = Backing;
 	}
 
@@ -223,7 +319,29 @@ bool URLCharacterPanelWidget::Initialize()
 void URLCharacterPanelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	// Track gathering so the materials list updates as nodes are harvested.
+	if (!bBoundRunInventory)
+	{
+		if (URLRunManagerSubsystem* Run = GetRunManager())
+		{
+			Run->OnRunInventoryChanged.AddDynamic(this, &URLCharacterPanelWidget::HandleRunInventoryChanged);
+			bBoundRunInventory = true;
+		}
+	}
+
 	RefreshEssences();
+}
+
+URLRunManagerSubsystem* URLCharacterPanelWidget::GetRunManager() const
+{
+	UGameInstance* GI = GetGameInstance();
+	return GI ? GI->GetSubsystem<URLRunManagerSubsystem>() : nullptr;
+}
+
+void URLCharacterPanelWidget::HandleRunInventoryChanged()
+{
+	RefreshMaterials();
 }
 
 void URLCharacterPanelWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -421,6 +539,134 @@ void URLCharacterPanelWidget::RefreshEssences()
 			}
 		}
 	}
+
+	// The inventory column travels with the rest of the loadout refresh.
+	RefreshMaterials();
+	RefreshGear();
+}
+
+void URLCharacterPanelWidget::RefreshMaterials()
+{
+	if (!MaterialList)
+	{
+		return;
+	}
+	MaterialList->ClearChildren();
+
+	URLGameInstance* GI = GetRLGameInstance();
+	const URLDataSubsystem* Data = GI ? GI->GetSubsystem<URLDataSubsystem>() : nullptr;
+
+	// Source: what you've gathered this run, or the stash back at base camp.
+	TArray<FRLItemStack> Items;
+	if (URLRunManagerSubsystem* Run = GetRunManager(); Run && Run->IsOnRun())
+	{
+		Items = Run->GetRunInventory();
+	}
+	else if (GI)
+	{
+		Items = GI->GetActiveHeroData().Stash;
+	}
+
+	int32 Shown = 0;
+	for (const FRLItemStack& Stack : Items)
+	{
+		// Only materials belong in this readout; gear shows in the gear list.
+		if (Data)
+		{
+			const FRLItemRow* Row = Data->FindItem(Stack.ItemId);
+			if (Row && Row->ItemType != ERLItemType::Material)
+			{
+				continue;
+			}
+		}
+		const FString Line = FString::Printf(TEXT("%s  x%d"),
+			*ItemDisplayName(Data, Stack.ItemId).ToString(), Stack.Count);
+		MaterialList->AddChildToVerticalBox(MakeText(WidgetTree, Line, 11, false));
+		++Shown;
+	}
+
+	if (Shown == 0)
+	{
+		MaterialList->AddChildToVerticalBox(MakeText(WidgetTree, TEXT("(none)"), 11, false));
+	}
+}
+
+void URLCharacterPanelWidget::RefreshGear()
+{
+	if (!GearList)
+	{
+		return;
+	}
+	GearList->ClearChildren();
+
+	URLGameInstance* GI = GetRLGameInstance();
+	if (!GI)
+	{
+		return;
+	}
+	const URLDataSubsystem* Data = GI->GetSubsystem<URLDataSubsystem>();
+	const FRLHeroData Hero = GI->GetActiveHeroData();
+
+	const TSubclassOf<URLGearPanelEntry> EntryClass =
+		GearEntryWidgetClass ? *GearEntryWidgetClass : URLGearPanelEntry::StaticClass();
+
+	// Worn gear first (each with an Unequip action).
+	for (const TPair<ERLEquipSlot, FName>& Pair : Hero.Equipped)
+	{
+		if (Pair.Value == NAME_None)
+		{
+			continue;
+		}
+		if (URLGearPanelEntry* Entry = CreateWidget<URLGearPanelEntry>(this, EntryClass))
+		{
+			Entry->Setup(this, Pair.Value, /*bEquipped=*/true, Pair.Key);
+			GearList->AddChild(Entry);
+		}
+	}
+
+	// Then equippable gear sitting in the stash (each with an Equip action).
+	for (const FRLItemStack& Stack : Hero.Stash)
+	{
+		const FRLItemRow* Item = Data ? Data->FindItem(Stack.ItemId) : nullptr;
+		if (!Item || Item->EquipSlot == ERLEquipSlot::None)
+		{
+			continue;
+		}
+		if (URLGearPanelEntry* Entry = CreateWidget<URLGearPanelEntry>(this, EntryClass))
+		{
+			Entry->Setup(this, Stack.ItemId, /*bEquipped=*/false, Item->EquipSlot);
+			GearList->AddChild(Entry);
+		}
+	}
+
+	if (GearList->GetChildrenCount() == 0)
+	{
+		GearList->AddChildToVerticalBox(MakeText(WidgetTree, TEXT("(none)"), 11, false));
+	}
+}
+
+void URLCharacterPanelWidget::EquipItemById(FName ItemId)
+{
+	if (URLGameInstance* GI = GetRLGameInstance())
+	{
+		if (GI->EquipFromStash(ItemId))
+		{
+			GI->SaveToDisk();
+		}
+	}
+	ApplyLoadoutChange();
+}
+
+void URLCharacterPanelWidget::UnequipSlot(ERLEquipSlot Slot)
+{
+	if (URLGameInstance* GI = GetRLGameInstance())
+	{
+		if (GI->Unequip(Slot))
+		{
+			GI->SaveToDisk();
+		}
+	}
+	ApplyLoadoutChange();
 }
 
 void URLCharacterPanelWidget::ApplyLoadoutChange()

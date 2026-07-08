@@ -27,4 +27,8 @@ public:
 	/** Row names of every recipe the stash can currently afford. */
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Crafting", meta = (WorldContext = "WorldContextObject"))
 	static void GetCraftableRecipes(const UObject* WorldContextObject, TArray<FName>& OutRecipeIds);
+
+	/** Row names of every known recipe, affordable or not (for the crafting UI). */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Crafting", meta = (WorldContext = "WorldContextObject"))
+	static void GetAllRecipeIds(const UObject* WorldContextObject, TArray<FName>& OutRecipeIds);
 };

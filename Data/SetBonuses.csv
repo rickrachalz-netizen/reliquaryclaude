@@ -5,3 +5,4 @@ Feywood2,"(TagName=""Set.Feywood"")",2,Quickened Sap: +5% crit chance.,"(CritCha
 Feywood4,"(TagName=""Set.Feywood"")",4,Court's Favor: +10% haste and +40 move speed.,"(Haste=0.1,MoveSpeed=40)",
 GodBone2,"(TagName=""Set.GodBone"")",2,Divine Marrow: +150 health and +2 health regen.,"(Health=150,HealthRegen=2)",
 GodBone4,"(TagName=""Set.GodBone"")",4,Godbreaker: +5% adaptability per stack and +25 to all primary stats.,"(Strength=25,Agility=25,Intellect=25,Adaptability=0.05)",
+Duskheart2,"(TagName=""Set.Duskheart"")",2,"Duskheart: +10% haste, +10% health regen, +10% move speed.","(Haste=0.1,HealthRegen=2,MoveSpeed=60)",

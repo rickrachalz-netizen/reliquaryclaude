@@ -3,6 +3,7 @@
 #include "RLAttributeSet.h"
 #include "RLDamageEffect.h"
 #include "RLEnemyHealthBarWidget.h"
+#include "RLDamageNumberWidget.h"
 #include "RLGameplayTags.h"
 #include "RLGameInstance.h"
 #include "RLRunManagerSubsystem.h"
@@ -50,6 +51,8 @@ ARLEnemyBase::ARLEnemyBase()
 	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarComponent->SetDrawAtDesiredSize(true);
 	HealthBarComponent->SetVisibility(false);
+
+	DamageNumberWidgetClass = URLDamageNumberWidget::StaticClass();
 }
 
 UAbilitySystemComponent* ARLEnemyBase::GetAbilitySystemComponent() const
@@ -224,7 +227,7 @@ void ARLEnemyBase::DealTouchDamage(AActor* Target)
 	}
 }
 
-void ARLEnemyBase::HandleDamageTaken(float Damage, AActor* InstigatorActor)
+void ARLEnemyBase::HandleDamageTaken(float Damage, AActor* InstigatorActor, bool bCritical)
 {
 	if (InstigatorActor && InstigatorActor != this)
 	{
@@ -235,6 +238,29 @@ void ARLEnemyBase::HandleDamageTaken(float Damage, AActor* InstigatorActor)
 	if (!bDead)
 	{
 		RefreshHealthBar();
+		SpawnDamageNumber(Damage, bCritical);
+	}
+}
+
+void ARLEnemyBase::SpawnDamageNumber(float Damage, bool bCritical)
+{
+	if (!DamageNumberWidgetClass || Damage <= 0.f)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+	if (!PC)
+	{
+		return;
+	}
+
+	if (URLDamageNumberWidget* Widget = CreateWidget<URLDamageNumberWidget>(PC, DamageNumberWidgetClass))
+	{
+		Widget->AddToViewport(50);
+		// Anchor at the head, same offset the health bar uses.
+		Widget->InitDamageNumber(Damage, bCritical, GetActorLocation() + FVector(0.f, 0.f, 120.f));
 	}
 }
 

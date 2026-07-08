@@ -1,6 +1,7 @@
 #include "RLAbilitySystemComponent.h"
 #include "RLGameplayTags.h"
 #include "RLGameplayAbility.h"
+#include "RLGameplayEffectContext.h"
 
 bool URLAbilitySystemComponent::TryActivateByActionTag(FGameplayTag ActionTag)
 {
@@ -111,10 +112,26 @@ void URLAbilitySystemComponent::NotifyActionUsed(const FGameplayTag& ActionTag)
 	LastActionTag = ActionTag;
 }
 
+FGameplayEffectContext* URLAbilitySystemComponent::AllocGameplayEffectContext() const
+{
+	return new FRLGameplayEffectContext();
+}
+
 void URLAbilitySystemComponent::HandleDamageTaken(float Damage, const FGameplayEffectContextHandle& Context, bool bLethal)
 {
 	AActor* InstigatorActor = Context.GetOriginalInstigator();
-	OnDamageTaken.Broadcast(Damage, InstigatorActor);
+
+	// Recover the crit flag the damage execution stashed on our context type.
+	bool bCritical = false;
+	if (const FGameplayEffectContext* Raw = Context.Get())
+	{
+		if (Raw->GetScriptStruct() == FRLGameplayEffectContext::StaticStruct())
+		{
+			bCritical = static_cast<const FRLGameplayEffectContext*>(Raw)->IsCriticalHit();
+		}
+	}
+
+	OnDamageTaken.Broadcast(Damage, InstigatorActor, bCritical);
 
 	if (bLethal && !bDeathHandled)
 	{

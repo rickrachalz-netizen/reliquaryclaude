@@ -8,7 +8,7 @@
 #include "GameplayTagContainer.h"
 #include "RLAbilitySystemComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRLDamageTakenSignature, float, Damage, AActor*, Instigator);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FRLDamageTakenSignature, float, Damage, AActor*, Instigator, bool, bCritical);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FRLDeathSignature);
 
 /**
@@ -56,6 +56,9 @@ public:
 
 	/** Called from the attribute set when IncomingDamage lands. */
 	void HandleDamageTaken(float Damage, const FGameplayEffectContextHandle& Context, bool bLethal);
+
+	/** Allocate our crit-carrying effect context for every spec this ASC makes. */
+	virtual FGameplayEffectContext* AllocGameplayEffectContext() const override;
 
 	/** Fired every time this actor takes post-mitigation damage. */
 	UPROPERTY(BlueprintAssignable, Category = "RELIQUARY|Combat")

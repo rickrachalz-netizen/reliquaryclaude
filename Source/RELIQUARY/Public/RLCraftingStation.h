@@ -9,6 +9,7 @@
 #include "RLCraftingStation.generated.h"
 
 class UStaticMeshComponent;
+class URLCraftingWidget;
 
 UCLASS()
 class RELIQUARY_API ARLCraftingStation : public AActor, public IRLInteractable
@@ -20,6 +21,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> Mesh;
+
+	/** Forge UI opened on interact; defaults to the native URLCraftingWidget. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Crafting")
+	TSubclassOf<URLCraftingWidget> CraftingWidgetClass;
 
 	// --- IRLInteractable ---
 	virtual void Interact_Implementation(AActor* Interactor) override;

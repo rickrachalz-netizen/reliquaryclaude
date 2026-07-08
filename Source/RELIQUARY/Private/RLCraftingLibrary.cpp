@@ -78,3 +78,20 @@ void URLCraftingLibrary::GetCraftableRecipes(const UObject* WorldContextObject, 
 		}
 	}
 }
+
+void URLCraftingLibrary::GetAllRecipeIds(const UObject* WorldContextObject, TArray<FName>& OutRecipeIds)
+{
+	URLGameInstance* GI = GetRLGameInstance(WorldContextObject);
+	URLDataSubsystem* Data = GI ? GI->GetSubsystem<URLDataSubsystem>() : nullptr;
+	if (!Data)
+	{
+		return;
+	}
+
+	TArray<TPair<FName, const FRLRecipeRow*>> Recipes;
+	Data->GetAllRecipes(Recipes);
+	for (const auto& Pair : Recipes)
+	{
+		OutRecipeIds.Add(Pair.Key);
+	}
+}

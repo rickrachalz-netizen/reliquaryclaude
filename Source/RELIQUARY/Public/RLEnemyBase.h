@@ -15,6 +15,7 @@ class URLAbilitySystemComponent;
 class URLAttributeSet;
 class UUserWidget;
 class UWidgetComponent;
+class URLDamageNumberWidget;
 class ARLEnemyBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRLEnemyKilledSignature, ARLEnemyBase*, Enemy, AActor*, Killer);
@@ -112,6 +113,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|HealthBar")
 	float HealthBarLingerSeconds = 5.f;
 
+	/** Floating damage number spawned per hit; defaults to the native widget. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RELIQUARY|Combat")
+	TSubclassOf<URLDamageNumberWidget> DamageNumberWidgetClass;
+
 	UPROPERTY(BlueprintAssignable, Category = "RELIQUARY|Enemy")
 	FRLEnemyKilledSignature OnEnemyKilled;
 
@@ -161,7 +166,10 @@ protected:
 	TObjectPtr<AActor> LastDamager;
 
 	UFUNCTION()
-	void HandleDamageTaken(float Damage, AActor* InstigatorActor);
+	void HandleDamageTaken(float Damage, AActor* InstigatorActor, bool bCritical);
+
+	/** Pop a floating damage number above the head for this hit. */
+	void SpawnDamageNumber(float Damage, bool bCritical);
 
 	UFUNCTION()
 	void HandleDeath();
