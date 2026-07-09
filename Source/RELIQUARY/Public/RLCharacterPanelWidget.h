@@ -63,7 +63,7 @@ protected:
 
 	FName ItemId = NAME_None;
 	bool bEquipped = false;
-	ERLEquipSlot Slot{};
+	ERLEquipSlot EquipSlot{};
 
 	UFUNCTION() void HandleAction();
 };
@@ -109,7 +109,7 @@ public:
 
 	/** Unequip a worn slot back to the stash, then rebuild and refresh. */
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Panel")
-	void UnequipSlot(ERLEquipSlot Slot);
+	void UnequipSlot(ERLEquipSlot InSlot);
 
 protected:
 	virtual bool Initialize() override;
