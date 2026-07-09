@@ -9,6 +9,7 @@
 #include "RLCraftingStation.generated.h"
 
 class UStaticMeshComponent;
+class URLCraftingWidget;
 
 UCLASS()
 class RELIQUARY_API ARLCraftingStation : public AActor, public IRLInteractable
@@ -21,6 +22,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
+	/** Forge UI opened on interact; defaults to the native URLCraftingWidget. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Crafting")
+	TSubclassOf<URLCraftingWidget> CraftingWidgetClass;
+
 	// --- IRLInteractable ---
 	virtual void Interact_Implementation(AActor* Interactor) override;
 	virtual FText GetInteractionPrompt_Implementation() const override;
@@ -29,4 +34,8 @@ public:
 	/** BP hook: open the crafting widget. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Crafting")
 	void OnCraftingOpened(AActor* Interactor);
+
+protected:
+	/** The open forge panel, so re-interacting can't stack a second one. */
+	TWeakObjectPtr<URLCraftingWidget> ActiveWidget;
 };

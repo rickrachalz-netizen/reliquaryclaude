@@ -36,4 +36,6 @@ GodboneCrown,Godbone Crown,Heavy is the head. Heavier is what it survived.,Armor
 GodbonePlate,Godbone Plate,Ribs of a fallen god shaped to guard a smaller heart.,Armor,Chest,Epic,1,"(Armor=85,Health=95)",,"(TagName=""Set.GodBone"")"
 GodboneLegplates,Godbone Legplates,Each step lands like a promise.,Armor,Legs,Epic,1,"(Armor=70,Health=70,MoveSpeed=35)",,"(TagName=""Set.GodBone"")"
 GodboneHandguards,Godbone Handguards,Hands steady enough to end the realm's last argument.,Armor,Hands,Epic,1,"(Armor=50,Health=40,Haste=0.06,CritChance=0.03)",,"(TagName=""Set.GodBone"")"
+OakheartHelm,Oakheart Helm,A sturdy helm of seasoned oakheart banded with duskiron. Part of the Duskheart set.,Armor,Head,Uncommon,1,"(Armor=100,Strength=10)",,"(TagName=""Set.Duskheart"")"
+DuskironLongsword,Duskiron Longsword,A long blade forged from duskiron over an oakheart core. Part of the Duskheart set.,Weapon,Weapon,Uncommon,1,"(Strength=10,CritChance=0.2)",,"(TagName=""Set.Duskheart"")"
 GloomcapDraught,Gloomcap Draught,A bitter draught that knits flesh mid-fight. Brewed at base camp; drunk on the run.,Consumable,None,Uncommon,10,,,

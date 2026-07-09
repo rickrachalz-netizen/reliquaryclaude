@@ -1,6 +1,7 @@
 #include "RLDamageExecution.h"
 #include "RLAttributeSet.h"
 #include "RLAbilitySystemComponent.h"
+#include "RLGameplayEffectContext.h"
 #include "RLGameplayTags.h"
 #include "RLRunManagerSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -118,6 +119,18 @@ void URLDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecu
 		{
 			const float CritDamage = Capture(RLDamageStatics::Get().CritDamageDef);
 			Damage *= FMath::Max(CritDamage, 1.f);
+
+			// Stash the crit on the shared context so the target's damage number
+			// can flag it. Copying the handle keeps a mutable view of the same
+			// underlying context the const spec holds.
+			FGameplayEffectContextHandle ContextHandle = Spec.GetContext();
+			if (FGameplayEffectContext* RawContext = ContextHandle.Get())
+			{
+				if (RawContext->GetScriptStruct() == FRLGameplayEffectContext::StaticStruct())
+				{
+					static_cast<FRLGameplayEffectContext*>(RawContext)->SetIsCriticalHit(true);
+				}
+			}
 		}
 	}
 

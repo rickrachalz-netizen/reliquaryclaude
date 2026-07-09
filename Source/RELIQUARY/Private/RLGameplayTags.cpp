@@ -36,6 +36,7 @@ namespace RLTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Set_Ironwood, "Set.Ironwood", "Ironwood gear set.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Set_Feywood,  "Set.Feywood",  "Feywood gear set.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Set_GodBone,  "Set.GodBone",  "God-Bone gear set, forged from end-of-run boss drops.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Set_Duskheart, "Set.Duskheart", "Duskheart gear set: Oakheart Helm + Duskiron Longsword.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Damage,  "SetByCaller.Damage",  "Damage magnitude passed by abilities.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_Healing, "SetByCaller.Healing", "Healing magnitude passed by abilities.");
