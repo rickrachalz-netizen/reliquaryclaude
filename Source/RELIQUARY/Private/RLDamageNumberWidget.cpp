@@ -28,6 +28,9 @@ void URLDamageNumberWidget::InitDamageNumber(float Amount, bool bCritical, const
 	bActive = true;
 	JitterX = FMath::FRandRange(-HorizontalSpread, HorizontalSpread);
 
+	// Center-bottom of the text sits on the projected point.
+	SetAlignmentInViewport(FVector2D(0.5f, 1.f));
+
 	if (DamageText)
 	{
 		const int32 Rounded = FMath::Max(1, FMath::RoundToInt(Amount));
@@ -69,9 +72,11 @@ void URLDamageNumberWidget::NativeTick(const FGeometry& MyGeometry, float InDelt
 	if (PC->ProjectWorldLocationToScreen(WorldAnchor, ScreenPos))
 	{
 		// Drift upward as it ages; nudge sideways so stacked hits fan out.
+		// bRemoveDPIScale=true: ProjectWorldLocationToScreen returns pixels,
+		// viewport positions are in DPI-scaled slate units.
 		ScreenPos.X += JitterX;
 		ScreenPos.Y -= Elapsed * RiseSpeed;
-		SetPositionInViewport(ScreenPos, false);
+		SetPositionInViewport(ScreenPos, true);
 		SetRenderOpacity(FMath::Clamp(1.f - (Elapsed / Lifetime), 0.f, 1.f));
 	}
 	else

@@ -63,7 +63,7 @@ protected:
 
 	FName ItemId = NAME_None;
 	bool bEquipped = false;
-	ERLEquipSlot Slot;
+	ERLEquipSlot Slot{};
 
 	UFUNCTION() void HandleAction();
 };

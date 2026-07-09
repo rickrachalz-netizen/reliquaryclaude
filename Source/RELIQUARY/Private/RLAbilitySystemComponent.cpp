@@ -112,11 +112,6 @@ void URLAbilitySystemComponent::NotifyActionUsed(const FGameplayTag& ActionTag)
 	LastActionTag = ActionTag;
 }
 
-FGameplayEffectContext* URLAbilitySystemComponent::AllocGameplayEffectContext() const
-{
-	return new FRLGameplayEffectContext();
-}
-
 void URLAbilitySystemComponent::HandleDamageTaken(float Damage, const FGameplayEffectContextHandle& Context, bool bLethal)
 {
 	AActor* InstigatorActor = Context.GetOriginalInstigator();

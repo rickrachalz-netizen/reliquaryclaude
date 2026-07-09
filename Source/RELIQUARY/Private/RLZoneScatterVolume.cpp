@@ -128,7 +128,22 @@ void ARLZoneScatterVolume::ScatterZone()
 
 void ARLZoneScatterVolume::ScatterResourceEntry(const FRLResourceScatterEntry& Entry, FRLXoshiro256& Rng)
 {
-	if (!Entry.NodeClass)
+	// Resolve the node class like the legacy path: an explicit entry class
+	// wins, then the per-material map, then the volume default — so a fresh
+	// volume still spawns harvestable nodes before any BPs are assigned.
+	TSubclassOf<ARLResourceNode> NodeClass = Entry.NodeClass;
+	if (!NodeClass)
+	{
+		if (const TSubclassOf<ARLResourceNode>* Mapped = NodeClassByMaterial.Find(Entry.MaterialItemId))
+		{
+			NodeClass = *Mapped;
+		}
+	}
+	if (!NodeClass)
+	{
+		NodeClass = DefaultNodeClass;
+	}
+	if (!NodeClass)
 	{
 		return;
 	}
@@ -140,7 +155,7 @@ void ARLZoneScatterVolume::ScatterResourceEntry(const FRLResourceScatterEntry& E
 	{
 		for (int32 i = 0; i < Count; ++i)
 		{
-			if (ARLResourceNode* Node = SpawnScattered<ARLResourceNode>(Entry.NodeClass, Rng))
+			if (ARLResourceNode* Node = SpawnScattered<ARLResourceNode>(NodeClass, Rng))
 			{
 				Node->MaterialItemId = Entry.MaterialItemId;
 			}
@@ -170,7 +185,7 @@ void ARLZoneScatterVolume::ScatterResourceEntry(const FRLResourceScatterEntry& E
 
 			FActorSpawnParameters Params;
 			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-			if (ARLResourceNode* Node = GetWorld()->SpawnActor<ARLResourceNode>(Entry.NodeClass, Location,
+			if (ARLResourceNode* Node = GetWorld()->SpawnActor<ARLResourceNode>(NodeClass, Location,
 				FRotator(0.f, Rng.FRandRange(0.f, 360.f), 0.f), Params))
 			{
 				Node->MaterialItemId = Entry.MaterialItemId;

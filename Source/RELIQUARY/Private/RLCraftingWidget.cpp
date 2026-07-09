@@ -52,7 +52,8 @@ void URLCraftingRecipeEntry::Setup(URLCraftingWidget* InOwner, FName InRecipeId)
 	URLGameInstance* GI = Cast<URLGameInstance>(GetGameInstance());
 	URLDataSubsystem* Data = GI ? GI->GetSubsystem<URLDataSubsystem>() : nullptr;
 	const FRLRecipeRow* Recipe = Data ? Data->FindRecipe(RecipeId) : nullptr;
-	if (!Recipe || !WidgetTree)
+	// A WBP subclass supplying its own tree keeps it; only build when empty.
+	if (!Recipe || !WidgetTree || WidgetTree->RootWidget)
 	{
 		return;
 	}

@@ -34,4 +34,8 @@ public:
 	/** BP hook: open the crafting widget. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Crafting")
 	void OnCraftingOpened(AActor* Interactor);
+
+protected:
+	/** The open forge panel, so re-interacting can't stack a second one. */
+	TWeakObjectPtr<URLCraftingWidget> ActiveWidget;
 };
