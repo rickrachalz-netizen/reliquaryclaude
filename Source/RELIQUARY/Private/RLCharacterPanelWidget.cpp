@@ -153,7 +153,7 @@ void URLGearPanelEntry::Setup(URLCharacterPanelWidget* InOwner, FName InItemId, 
 	Owner = InOwner;
 	ItemId = InItemId;
 	bEquipped = bInEquipped;
-	Slot = InSlot;
+	EquipSlot = InSlot;
 
 	if (!WidgetTree || WidgetTree->RootWidget)
 	{
@@ -192,7 +192,7 @@ void URLGearPanelEntry::HandleAction()
 	}
 	if (bEquipped)
 	{
-		Owner->UnequipSlot(Slot);
+		Owner->UnequipSlot(EquipSlot);
 	}
 	else
 	{
@@ -657,11 +657,11 @@ void URLCharacterPanelWidget::EquipItemById(FName ItemId)
 	ApplyLoadoutChange();
 }
 
-void URLCharacterPanelWidget::UnequipSlot(ERLEquipSlot Slot)
+void URLCharacterPanelWidget::UnequipSlot(ERLEquipSlot InSlot)
 {
 	if (URLGameInstance* GI = GetRLGameInstance())
 	{
-		if (GI->Unequip(Slot))
+		if (GI->Unequip(InSlot))
 		{
 			GI->SaveToDisk();
 		}
