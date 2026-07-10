@@ -20,6 +20,10 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Styling/CoreStyle.h"
+#include "RLWidgetHelpers.h"
+
+using RLWidgets::MakeText;
+using RLWidgets::ItemDisplayName;
 
 namespace
 {
@@ -31,29 +35,6 @@ namespace
 		TEXT("Armor"), TEXT("Move Speed"), TEXT("Adaptability"), TEXT("Battle Trance")
 	};
 	constexpr int32 GStatCount = UE_ARRAY_COUNT(GStatLabels);
-
-	UTextBlock* MakeText(UWidgetTree* Tree, const FString& Text, int32 FontSize = 12, bool bBold = false)
-	{
-		UTextBlock* Block = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		Block->SetText(FText::FromString(Text));
-		Block->SetFont(FCoreStyle::GetDefaultFontStyle(bBold ? "Bold" : "Regular", FontSize));
-		return Block;
-	}
-
-	FText ItemDisplayName(const URLDataSubsystem* Data, FName ItemId)
-	{
-		if (Data)
-		{
-			if (const FRLItemRow* Row = Data->FindItem(ItemId))
-			{
-				if (!Row->DisplayName.IsEmpty())
-				{
-					return Row->DisplayName;
-				}
-			}
-		}
-		return FText::FromName(ItemId);
-	}
 }
 
 // ---------------------------------------------------------------------------

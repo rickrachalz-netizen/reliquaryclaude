@@ -15,32 +15,10 @@
 #include "Components/VerticalBoxSlot.h"
 #include "GameFramework/PlayerController.h"
 #include "Styling/CoreStyle.h"
+#include "RLWidgetHelpers.h"
 
-namespace
-{
-	UTextBlock* MakeText(UWidgetTree* Tree, const FString& Text, int32 FontSize = 12, bool bBold = false)
-	{
-		UTextBlock* Block = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		Block->SetText(FText::FromString(Text));
-		Block->SetFont(FCoreStyle::GetDefaultFontStyle(bBold ? "Bold" : "Regular", FontSize));
-		return Block;
-	}
-
-	FText ItemDisplayName(URLDataSubsystem* Data, FName ItemId)
-	{
-		if (Data)
-		{
-			if (const FRLItemRow* Row = Data->FindItem(ItemId))
-			{
-				if (!Row->DisplayName.IsEmpty())
-				{
-					return Row->DisplayName;
-				}
-			}
-		}
-		return FText::FromName(ItemId);
-	}
-}
+using RLWidgets::MakeText;
+using RLWidgets::ItemDisplayName;
 
 // --- Recipe row ---
 
