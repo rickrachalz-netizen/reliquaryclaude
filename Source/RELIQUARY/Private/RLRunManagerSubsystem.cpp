@@ -80,6 +80,42 @@ void URLRunManagerSubsystem::ExtractToBaseCamp()
 	FinishRun(/*bDied=*/false);
 }
 
+void URLRunManagerSubsystem::RequestExtraction()
+{
+	if (!IsOnRun())
+	{
+		return;
+	}
+	SetRunState(ERLRunState::Extracting);
+	FinishRun(/*bDied=*/false);
+}
+
+void URLRunManagerSubsystem::NotifyArrivedAtBaseCamp()
+{
+	if (IsOnRun())
+	{
+		// Someone traveled home without extracting (a Blueprint opening the
+		// lobby directly). Don't punish the player for a wiring shortcut —
+		// bank the haul as if they extracted.
+		UE_LOG(LogRLRun, Warning,
+			TEXT("Arrived at base camp with a live run (state %d) — banking the haul. Wire your extract actor to RequestExtraction for the full flow."),
+			static_cast<int32>(RunState));
+
+		BankRunInventory();
+		if (URLGameInstance* GI = Cast<URLGameInstance>(GetGameInstance()))
+		{
+			if (FRLHeroData* Hero = GI->GetActiveHero())
+			{
+				++Hero->RunsCompleted;
+				Hero->DeepestZoneReached = FMath::Max(Hero->DeepestZoneReached, CurrentZoneIndex);
+			}
+		}
+		ResetRunState();
+	}
+
+	SetRunState(ERLRunState::AtBaseCamp);
+}
+
 void URLRunManagerSubsystem::HandleHeroDeath()
 {
 	if (!IsOnRun())

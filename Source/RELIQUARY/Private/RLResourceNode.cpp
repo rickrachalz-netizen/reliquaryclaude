@@ -26,6 +26,21 @@ void ARLResourceNode::BeginPlay()
 	NodeHealth = MaxNodeHealth;
 }
 
+void ARLResourceNode::Destroyed()
+{
+	// Shatter() is the only sanctioned way out — it drops materials and mana
+	// and sets bShattered before the lifespan removes the actor. Anything else
+	// (a Blueprint DestroyActor, leftover prototype logic) silently eats the
+	// yield, so shout about it.
+	if (!bShattered && HasActorBegunPlay())
+	{
+		UE_LOG(LogRELIQUARY, Warning,
+			TEXT("%s (%s) was destroyed without shattering — external logic (Blueprint DestroyActor?) removed it; no materials or mana dropped."),
+			*GetName(), *GetClass()->GetName());
+	}
+	Super::Destroyed();
+}
+
 float ARLResourceNode::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent,
 	AController* EventInstigator, AActor* DamageCauser)
 {
