@@ -46,6 +46,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Run")
 	void ExtractToBaseCamp();
 
+	/**
+	 * Extract from ANY on-run state: bank the haul and travel home. The hook
+	 * for bespoke extract actors (e.g. a placed extract altar Blueprint) that
+	 * aren't part of the charged-challenge-altar flow. No-op off-run.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Run")
+	void RequestExtraction();
+
+	/**
+	 * Called by the base camp game mode on arrival. If a run is somehow still
+	 * live (a Blueprint opened L_Lobby directly instead of extracting), the
+	 * haul is banked instead of silently wiped, then run state resets. Always
+	 * leaves the state at AtBaseCamp.
+	 */
+	void NotifyArrivedAtBaseCamp();
+
 	/** Death: forfeit everything gathered (banked crates stay safe). */
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Run")
 	void HandleHeroDeath();

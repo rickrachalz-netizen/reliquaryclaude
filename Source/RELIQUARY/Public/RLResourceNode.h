@@ -69,6 +69,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** Tripwire: a node removed without shattering dropped nothing. */
+	virtual void Destroyed() override;
+
 	float NodeHealth = 0.f;
 	bool bShattered = false;
 

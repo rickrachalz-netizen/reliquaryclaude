@@ -10,7 +10,9 @@ void ARLBaseCampGameMode::BeginPlay()
 	if (URLRunManagerSubsystem* RunManager =
 		GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>())
 	{
-		RunManager->SetRunState(ERLRunState::AtBaseCamp);
+		// Banks any still-live haul (direct-travel shortcut) before the save
+		// below, so nothing gathered is lost on the way home.
+		RunManager->NotifyArrivedAtBaseCamp();
 	}
 
 	// Autosave whenever the player enters base camp.
