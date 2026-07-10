@@ -5,6 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimMontage.h"
+#include "Engine/DamageEvents.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -83,6 +84,13 @@ void URLBladestormAbility::DoSpinTick()
 		if (UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim))
 		{
 			ApplyDamageToTarget(Victim);
+		}
+		else
+		{
+			// Destructible world: trees, rocks, and the like use plain point
+			// damage so the whirlwind harvests nodes like any other attack.
+			Victim->TakeDamage(BaseDamage.GetValueAtLevel(GetAbilityLevel()),
+				FDamageEvent(), nullptr, Avatar);
 		}
 	}
 
