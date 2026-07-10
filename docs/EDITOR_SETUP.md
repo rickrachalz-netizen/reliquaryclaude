@@ -35,15 +35,16 @@ Open each asset → File → Reparent Blueprint:
 
 - `Content/BP_RLGameInstance` → **`URLGameInstance`** (`RLGameInstance`)
 - `Content/UI/WBP_RunHUD2` (or `WBP_RunHUD`) → **`URLRunHUDWidget`** — then bind its text/progress widgets to the `Get*` pure functions
-- `Content/Resources/BP_ResourceNode`, `BP_Tree`, `BP_Stone` etc. → **`ARLResourceNode`** (set `MaterialItemId` per blueprint, e.g. `OakheartTimber` on trees, `Riverstone` on rocks)
+- `Content/Resources/BP_ResourceNode`, `BP_Tree`, `BP_Stone` etc. → **`ARLResourceNode`** (set `MaterialItemId` per blueprint — for the vertical slice: `OakheartTimber` on trees, `DuskironOre` on rocks — and make sure `PickupClass` points at your pickup BP; a node with either unset shatters without dropping anything and logs a warning). Scatter-spawned nodes get `MaterialItemId` re-stamped from the volume's `ResourceScatter` entry, so the BP default mainly covers hand-placed copies.
 - `Content/Resources/BP_ResourcePickup` → **`ARLResourcePickup`**
+- `Content/Resources/BP_ManaOrb` → **`ARLManaOrbPickup`** (create it at exactly this path — every mana burst in the game auto-uses it; give it a small mesh/VFX with the mesh's collision off, the overlap sphere is the root. Without it, orbs are collected but invisible.)
 - `Content/Maps/BP_RunPortal` → **`ARLEmbarkPortal`**
 - `Content/Maps/BP_ExtractPoint` → can be retired; extraction now flows through `ARLChallengeAltar`
 
 ## 4. World Settings per map (required)
 
 - `L_Lobby` (base camp): GameMode Override → **`ARLBaseCampGameMode`** (autosaves on arrival). Place: an `ARLEmbarkPortal` (Destination=RealmPath), an `ARLCraftingStation`, optionally a second portal with Destination=WildGod.
-- `L_Run` (zone shell): GameMode Override → **`ARLRunGameMode`**. Place one **`ARLZoneScatterVolume`** stretched over the playable area — it scatters resource nodes, upgrade altars, the challenge altar, and banking crates from the run seed. Add a NavMeshBoundsVolume so the director can place spawns.
+- `L_Run` (zone shell): GameMode Override → **`ARLRunGameMode`**. Place one **`ARLZoneScatterVolume`** stretched over the playable area — it scatters resource nodes, upgrade altars, the challenge altar, and banking crates from the run seed. Add a NavMeshBoundsVolume so the director can place spawns. Resource spawning is authored on the volume's **`ResourceScatter`** array: each entry names a material, the node Blueprint to spawn (`BP_Tree`/`BP_Stone`), a distribution (Clustered for forests, Uniform for ore), and min/max counts. Don't leave foliage-painted stand-ins in the map — foliage instances aren't actors, so they can't be damaged and never drop materials.
 - Both game modes should use your character BP (reparent of `ARELIQUARYCharacter`) as Default Pawn — set that on the GameMode BPs or subclass in BP.
 
 ## 5. Input (required for the kit)

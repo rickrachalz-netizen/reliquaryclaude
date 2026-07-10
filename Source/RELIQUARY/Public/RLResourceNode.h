@@ -38,13 +38,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Resource")
 	TSubclassOf<ARLResourcePickup> PickupClass;
 
+	/**
+	 * Seconds the shattered node lingers (collision already off) so the
+	 * OnShattered presentation — fall timeline, debris — can finish before the
+	 * actor is destroyed. Heavy abilities one-shot nodes, so this must cover
+	 * the full animation, not just the last chip.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Resource")
+	float ShatterLifeSpan = 3.f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent,
 		AController* EventInstigator, AActor* DamageCauser) override;
 
-	/** BP hook: shatter VFX/SFX, foliage fall, camera shake. */
+	/**
+	 * BP hook: shatter VFX/SFX, foliage fall, camera shake. Must be
+	 * self-contained — a heavy hit can one-shot the node, in which case
+	 * OnChipped never ran first. The actor lives ShatterLifeSpan seconds
+	 * after this fires (collision already disabled).
+	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "RELIQUARY|Resource")
 	void OnShattered(AActor* Breaker);
 

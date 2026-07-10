@@ -138,6 +138,14 @@ void ARLZoneScatterVolume::ScatterResourceEntry(const FRLResourceScatterEntry& E
 		{
 			NodeClass = *Mapped;
 		}
+		else if (NodeClassByMaterial.Num() > 0)
+		{
+			// A populated map with no key for this material is almost always a
+			// key-name mismatch (e.g. map keyed Riverstone, entry DuskironOre).
+			UE_LOG(LogRLScatter, Warning,
+				TEXT("ResourceScatter entry '%s' has no NodeClass and NodeClassByMaterial has no key for it; falling back to DefaultNodeClass."),
+				*Entry.MaterialItemId.ToString());
+		}
 	}
 	if (!NodeClass)
 	{
@@ -150,6 +158,10 @@ void ARLZoneScatterVolume::ScatterResourceEntry(const FRLResourceScatterEntry& E
 
 	const int32 Count = Rng.RandRange(FMath::Min(Entry.MinCount, Entry.MaxCount),
 		FMath::Max(Entry.MinCount, Entry.MaxCount));
+
+	UE_LOG(LogRLScatter, Log, TEXT("Scattering %d x %s as %s (%s)."),
+		Count, *Entry.MaterialItemId.ToString(), *GetNameSafe(*NodeClass),
+		Entry.Distribution == ERLScatterDistribution::Clustered ? TEXT("clusters") : TEXT("uniform"));
 
 	if (Entry.Distribution == ERLScatterDistribution::Uniform)
 	{

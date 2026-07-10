@@ -17,12 +17,45 @@ void ARLManaOrbPickup::GrantTo(AActor* Collector)
 	}
 }
 
-void ARLManaOrbPickup::SpawnBurst(UWorld* World, const FVector& Origin, int32 TotalMana)
+namespace
+{
+	/**
+	 * The orb class bursts default to: /Game/Resources/BP_ManaOrb if the
+	 * project authored one (that's where the visuals live), else the native
+	 * class. Cached so a missing Blueprint doesn't re-attempt (and re-log)
+	 * the load on every kill.
+	 */
+	UClass* ResolveDefaultOrbClass()
+	{
+		static TWeakObjectPtr<UClass> Cached;
+		static bool bLoadFailed = false;
+
+		if (Cached.IsValid())
+		{
+			return Cached.Get();
+		}
+		if (bLoadFailed)
+		{
+			return ARLManaOrbPickup::StaticClass();
+		}
+
+		UClass* Loaded = StaticLoadClass(ARLManaOrbPickup::StaticClass(), nullptr,
+			TEXT("/Game/Resources/BP_ManaOrb.BP_ManaOrb_C"));
+		Cached = Loaded;
+		bLoadFailed = (Loaded == nullptr);
+		return Loaded ? Loaded : ARLManaOrbPickup::StaticClass();
+	}
+}
+
+void ARLManaOrbPickup::SpawnBurst(UWorld* World, const FVector& Origin, int32 TotalMana,
+	TSubclassOf<ARLManaOrbPickup> OrbClass)
 {
 	if (!World || TotalMana <= 0)
 	{
 		return;
 	}
+
+	UClass* ClassToSpawn = OrbClass ? *OrbClass : ResolveDefaultOrbClass();
 
 	const int32 Unit = FMath::Max(1, RLBalance::ManaOrbUnitValue);
 	const int32 OrbCount = FMath::Max(1, FMath::CeilToInt(static_cast<float>(TotalMana) / Unit));
@@ -42,7 +75,7 @@ void ARLManaOrbPickup::SpawnBurst(UWorld* World, const FVector& Origin, int32 To
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		if (ARLManaOrbPickup* Orb = World->SpawnActor<ARLManaOrbPickup>(
-			ARLManaOrbPickup::StaticClass(), Origin + Offset, FRotator::ZeroRotator, Params))
+			ClassToSpawn, Origin + Offset, FRotator::ZeroRotator, Params))
 		{
 			Orb->ManaAmount = ThisOrb;
 		}

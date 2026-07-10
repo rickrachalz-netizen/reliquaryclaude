@@ -30,8 +30,14 @@ public:
 	 * Spawns TotalMana worth of orbs scattered around Origin, chunked into
 	 * pieces of RLBalance::ManaOrbUnitValue (the remainder rides the last orb).
 	 * No-op for non-positive totals or a null world.
+	 *
+	 * OrbClass picks the orb to spawn. When null (every existing call site),
+	 * the burst looks for a BP_ManaOrb at /Game/Resources/BP_ManaOrb — author
+	 * one there with a mesh/VFX and every burst in the game uses it, no wiring
+	 * needed. Missing Blueprint falls back to this (invisible) native class.
 	 */
-	static void SpawnBurst(UWorld* World, const FVector& Origin, int32 TotalMana);
+	static void SpawnBurst(UWorld* World, const FVector& Origin, int32 TotalMana,
+		TSubclassOf<ARLManaOrbPickup> OrbClass = nullptr);
 
 protected:
 	virtual void GrantTo(AActor* Collector) override;

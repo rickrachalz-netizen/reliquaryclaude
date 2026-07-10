@@ -1,4 +1,5 @@
 #include "RLResourceNode.h"
+#include "RELIQUARY.h"
 #include "RLResourcePickup.h"
 #include "RLManaOrbPickup.h"
 #include "RLRunManagerSubsystem.h"
@@ -50,7 +51,23 @@ void ARLResourceNode::Shatter(AActor* Breaker)
 {
 	bShattered = true;
 
+	// Stop blocking immediately; the actor itself lingers for the shatter
+	// presentation below.
+	if (Mesh)
+	{
+		Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	SetActorEnableCollision(false);
+
 	UWorld* World = GetWorld();
+	if (World && (MaterialItemId == NAME_None || !PickupClass))
+	{
+		// A node that drops nothing is a wiring bug, not a design choice —
+		// say so instead of failing silently.
+		UE_LOG(LogRELIQUARY, Warning,
+			TEXT("%s shattered but drops no materials (MaterialItemId=%s, PickupClass=%s)."),
+			*GetName(), *MaterialItemId.ToString(), *GetNameSafe(*PickupClass));
+	}
 	if (World && MaterialItemId != NAME_None && PickupClass)
 	{
 		const int32 Yield = FMath::RandRange(MinYield, MaxYield);
@@ -80,5 +97,5 @@ void ARLResourceNode::Shatter(AActor* Breaker)
 	}
 
 	OnShattered(Breaker);
-	SetLifeSpan(0.1f);
+	SetLifeSpan(FMath::Max(ShatterLifeSpan, 0.1f));
 }
