@@ -20,10 +20,48 @@ ARLResourceNode::ARLResourceNode()
 	PickupClass = ARLResourcePickup::StaticClass();
 }
 
+namespace
+{
+	/**
+	 * Nodes left on the native PickupClass default get upgraded to the
+	 * project's BP_ResourcePickup (the one with a visible mesh) when it
+	 * exists, mirroring the BP_ManaOrb convention. Cached so a missing
+	 * Blueprint doesn't re-attempt (and re-log) the load per node.
+	 */
+	UClass* ResolveDefaultPickupClass()
+	{
+		static TWeakObjectPtr<UClass> Cached;
+		static bool bLoadFailed = false;
+
+		if (Cached.IsValid())
+		{
+			return Cached.Get();
+		}
+		if (bLoadFailed)
+		{
+			return ARLResourcePickup::StaticClass();
+		}
+
+		UClass* Loaded = StaticLoadClass(ARLResourcePickup::StaticClass(), nullptr,
+			TEXT("/Game/Resources/BP_ResourcePickup.BP_ResourcePickup_C"));
+		Cached = Loaded;
+		bLoadFailed = (Loaded == nullptr);
+		return Loaded ? Loaded : ARLResourcePickup::StaticClass();
+	}
+}
+
 void ARLResourceNode::BeginPlay()
 {
 	Super::BeginPlay();
 	NodeHealth = MaxNodeHealth;
+
+	// The native pickup is invisible (no mesh). If nobody chose a pickup
+	// Blueprint explicitly, prefer the project's BP_ResourcePickup so drops
+	// can actually be seen; an explicit choice always wins.
+	if (PickupClass == ARLResourcePickup::StaticClass())
+	{
+		PickupClass = ResolveDefaultPickupClass();
+	}
 }
 
 void ARLResourceNode::Destroyed()
@@ -112,5 +150,14 @@ void ARLResourceNode::Shatter(AActor* Breaker)
 	}
 
 	OnShattered(Breaker);
+
+	// The stock presentation spawns replacement props (falling trunk, stump,
+	// gravel) from OnShattered, so the intact original disappears now — the
+	// job the prototype's DestroyActor used to do.
+	if (bHideMeshOnShatter)
+	{
+		SetActorHiddenInGame(true);
+	}
+
 	SetLifeSpan(FMath::Max(ShatterLifeSpan, 0.1f));
 }

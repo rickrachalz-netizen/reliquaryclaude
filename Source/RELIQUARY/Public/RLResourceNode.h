@@ -47,6 +47,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Resource")
 	float ShatterLifeSpan = 3.f;
 
+	/**
+	 * Hide the node the instant it shatters (right after OnShattered runs).
+	 * The stock presentation spawns replacement props — a falling trunk, a
+	 * stump, gravel — so the intact original must vanish immediately, exactly
+	 * as the old DestroyActor used to do. Untick for a Blueprint that animates
+	 * the node's own mesh during ShatterLifeSpan instead.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Resource")
+	bool bHideMeshOnShatter = true;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
