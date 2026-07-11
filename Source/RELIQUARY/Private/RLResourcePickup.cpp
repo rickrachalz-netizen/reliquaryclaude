@@ -1,4 +1,5 @@
 #include "RLResourcePickup.h"
+#include "RELIQUARY.h"
 #include "RLRunManagerSubsystem.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -51,6 +52,16 @@ void ARLResourcePickup::Tick(float DeltaSeconds)
 
 void ARLResourcePickup::GrantTo(AActor* Collector)
 {
+	if (ItemId == NAME_None)
+	{
+		// A payload-less grant means someone spawned a pickup without stamping
+		// it before overlaps could fire — the drop is silently lost otherwise.
+		UE_LOG(LogRELIQUARY, Warning,
+			TEXT("%s collected with no ItemId — the spawner never stamped its payload; nothing granted."),
+			*GetName());
+		return;
+	}
+
 	if (URLRunManagerSubsystem* RunManager =
 		GetGameInstance() ? GetGameInstance()->GetSubsystem<URLRunManagerSubsystem>() : nullptr)
 	{

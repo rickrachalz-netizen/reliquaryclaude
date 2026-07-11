@@ -131,13 +131,17 @@ void ARLResourceNode::Shatter(AActor* Breaker)
 		for (int32 i = 0; i < Yield; ++i)
 		{
 			const FVector Offset(FMath::FRandRange(-60.f, 60.f), FMath::FRandRange(-60.f, 60.f), 40.f);
-			FActorSpawnParameters Params;
-			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			if (ARLResourcePickup* Pickup = World->SpawnActor<ARLResourcePickup>(
-				PickupClass, GetActorLocation() + Offset, FRotator::ZeroRotator, Params))
+			// Deferred spawn: a pickup spawning inside the breaker's capsule
+			// fires its overlap during the spawn call — the payload must be
+			// stamped before FinishSpawning or the grant lands empty.
+			const FTransform SpawnTransform(FRotator::ZeroRotator, GetActorLocation() + Offset);
+			if (ARLResourcePickup* Pickup = World->SpawnActorDeferred<ARLResourcePickup>(
+				PickupClass, SpawnTransform, nullptr, nullptr,
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 			{
 				Pickup->ItemId = MaterialItemId;
 				Pickup->Count = 1;
+				Pickup->FinishSpawning(SpawnTransform);
 			}
 		}
 	}

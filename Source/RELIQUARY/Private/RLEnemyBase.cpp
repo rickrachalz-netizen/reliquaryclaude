@@ -360,13 +360,16 @@ void ARLEnemyBase::GrantRewards(AActor* Killer)
 		for (int32 i = 0; i < DropCount; ++i)
 		{
 			const FVector Offset(FMath::FRandRange(-80.f, 80.f), FMath::FRandRange(-80.f, 80.f), 60.f);
-			FActorSpawnParameters Params;
-			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			if (ARLResourcePickup* Pickup = GetWorld()->SpawnActor<ARLResourcePickup>(
-				ARLResourcePickup::StaticClass(), GetActorLocation() + Offset, FRotator::ZeroRotator, Params))
+			// Deferred spawn: melee kills drop pickups inside the killer's
+			// capsule — stamp the payload before overlaps can collect it.
+			const FTransform SpawnTransform(FRotator::ZeroRotator, GetActorLocation() + Offset);
+			if (ARLResourcePickup* Pickup = GetWorld()->SpawnActorDeferred<ARLResourcePickup>(
+				ARLResourcePickup::StaticClass(), SpawnTransform, nullptr, nullptr,
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 			{
 				Pickup->ItemId = DropItemId;
 				Pickup->Count = 1;
+				Pickup->FinishSpawning(SpawnTransform);
 			}
 		}
 	}
@@ -381,13 +384,15 @@ void ARLEnemyBase::GrantRewards(AActor* Killer)
 		if (RLGI && Data && Data->FindEssenceForEnemy(EnemyTypeId, EssenceId)
 			&& !RLGI->IsEssenceUnlocked(EssenceId))
 		{
-			FActorSpawnParameters Params;
-			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			if (ARLEssenceShardPickup* Shard = GetWorld()->SpawnActor<ARLEssenceShardPickup>(
-				ARLEssenceShardPickup::StaticClass(), GetActorLocation() + FVector(0.f, 0.f, 80.f),
-				FRotator::ZeroRotator, Params))
+			// Deferred spawn: this is a permanent one-time unlock — it must
+			// never be collected before EssenceId is stamped.
+			const FTransform SpawnTransform(FRotator::ZeroRotator, GetActorLocation() + FVector(0.f, 0.f, 80.f));
+			if (ARLEssenceShardPickup* Shard = GetWorld()->SpawnActorDeferred<ARLEssenceShardPickup>(
+				ARLEssenceShardPickup::StaticClass(), SpawnTransform, nullptr, nullptr,
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 			{
 				Shard->EssenceId = EssenceId;
+				Shard->FinishSpawning(SpawnTransform);
 			}
 		}
 	}

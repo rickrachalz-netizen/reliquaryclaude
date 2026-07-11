@@ -72,12 +72,15 @@ void ARLManaOrbPickup::SpawnBurst(UWorld* World, const FVector& Origin, int32 To
 		}
 
 		const FVector Offset(FMath::FRandRange(-90.f, 90.f), FMath::FRandRange(-90.f, 90.f), 60.f);
-		FActorSpawnParameters Params;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		if (ARLManaOrbPickup* Orb = World->SpawnActor<ARLManaOrbPickup>(
-			ClassToSpawn, Origin + Offset, FRotator::ZeroRotator, Params))
+		// Deferred spawn: stamp the payload before overlaps can fire (an orb
+		// spawning inside the hero is collected during the spawn call).
+		const FTransform SpawnTransform(FRotator::ZeroRotator, Origin + Offset);
+		if (ARLManaOrbPickup* Orb = World->SpawnActorDeferred<ARLManaOrbPickup>(
+			ClassToSpawn, SpawnTransform, nullptr, nullptr,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 		{
 			Orb->ManaAmount = ThisOrb;
+			Orb->FinishSpawning(SpawnTransform);
 		}
 	}
 }
