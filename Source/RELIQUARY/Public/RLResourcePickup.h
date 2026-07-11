@@ -31,6 +31,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Pickup")
 	float MagnetSpeed = 900.f;
 
+	/**
+	 * Grace period before the magnet engages. Without it a point-blank break
+	 * vacuums the drop within a couple frames — the player never sees their
+	 * loot exist. A beat of it sitting in the world sells the reward.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Pickup")
+	float MagnetDelaySeconds = 0.35f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USphereComponent> Collision;
 

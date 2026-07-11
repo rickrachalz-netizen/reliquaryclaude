@@ -29,6 +29,12 @@ void ARLResourcePickup::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	// Let the drop exist for a beat before it flies to the hero.
+	if (GetGameTimeSinceCreation() < MagnetDelaySeconds)
+	{
+		return;
+	}
+
 	APawn* Hero = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!Hero)
 	{
