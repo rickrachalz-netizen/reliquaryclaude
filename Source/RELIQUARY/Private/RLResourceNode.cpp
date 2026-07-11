@@ -69,8 +69,12 @@ void ARLResourceNode::Destroyed()
 	// Shatter() is the only sanctioned way out — it drops materials and mana
 	// and sets bShattered before the lifespan removes the actor. Anything else
 	// (a Blueprint DestroyActor, leftover prototype logic) silently eats the
-	// yield, so shout about it.
-	if (!bShattered && HasActorBegunPlay())
+	// yield, so shout about it. Editor reinstancing (recompiling the Blueprint
+	// destroys the stale REINST_ generation's instances) and editor-world
+	// cleanup are not gameplay — skip those to keep the warning meaningful.
+	const bool bStaleClassGeneration = GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists);
+	const bool bGameWorld = GetWorld() && GetWorld()->IsGameWorld();
+	if (!bShattered && HasActorBegunPlay() && bGameWorld && !bStaleClassGeneration)
 	{
 		UE_LOG(LogRELIQUARY, Warning,
 			TEXT("%s (%s) was destroyed without shattering — external logic (Blueprint DestroyActor?) removed it; no materials or mana dropped."),
