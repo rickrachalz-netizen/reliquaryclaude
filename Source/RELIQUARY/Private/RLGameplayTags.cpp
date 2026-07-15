@@ -23,6 +23,7 @@ namespace RLTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_BladestormEmpowered, "State.BladestormEmpowered", "Bladestorm's final tick empowers the next Secondary.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_CrushedArmor,        "State.CrushedArmor",        "Armor crushed by Reckless Abandon: takes increased damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Demoralized,         "State.Demoralized",         "Demoralizing Shout: deals reduced damage.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Parry,               "State.Parry",               "Parrying every incoming attack: damage negated (All in!).");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Class_Warrior, "Class.Warrior", "Warrior base class.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Class_Rogue,   "Class.Rogue",   "Rogue base class.");

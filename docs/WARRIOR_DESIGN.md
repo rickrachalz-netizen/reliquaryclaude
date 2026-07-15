@@ -11,7 +11,7 @@ what the design says, what is live in the build, and what is still stubbed.
 | Primary | **3-slash combo** (Mercenary-style) | 3rd hit +10% damage and applies a stacking debuff: +50% Secondary damage per stack | **LIVE incl. Expose**: the finisher now applies a stacking `State.Exposed` tag that Mortal Strike consumes (+50% each). Set `FinisherMultiplier = 1.1` on GA_WarriorPrimary to match the +10% design |
 | Secondary | **Mortal Strike** | Slow heavy hit, longish CD; -10% healing received for 10s; +50% damage below 20% HP | **LIVE** (`RLMortalStrikeAbility`, wired into Classes.csv). Executes below 20%, consumes Exposed, applies `State.MortalWounds` for 10s (healing hookup pending a healing system), stuns 2s with War_T3A. Optional: BP subclass with one montage in ComboMontages for the swing anim |
 | Special | **Reckless Abandon** | Hold-to-charge line dash (Loader punch + WoW dragon charge): windup dig-in, big hitstun on first enemy, Crushed Armor (+30% damage taken, 45s), AoE + Demoralizing Shout (-30% damage dealt, 10s), self-recoil 5% current HP + brief slow, air-usable with reduced range | **LIVE, Loader-feel** (`RLRecklessAbandonAbility`, wired into Classes.csv). Hold Special to charge (feet plant while grounded), release to launch along the **full 3D camera aim** — aim up and it throws you airborne; held time scales distance (600→2400) and damage (40%→100%). Walkable ground (normal Z ≥ 0.7) never stops it: the dash skims flats and rides up ramps; a vertical dive into flat ground is a soft landing. Objects do stop it: enemy hit = full package (stun, Crushed Armor 45s via `State.CrushedArmor` +30% in the damage execution, AoE 600 + `State.Demoralized` -30% dealt for 10s); wall/tree hit = direct damage to destructibles + recoil only. Recoil on enemy/object impact = 5% *current* HP (unmitigated) + 10% slow 1.5s + a small bounce up-and-backward (350/400). A clean whiff is free and **keeps its momentum** — the dash velocity hands off to gravity for the fling. From the ground, downward aim flattens to horizontal; midair dives are allowed and range is ×0.6. CD 12s hasted. BP hooks: OnChargeStarted/Tick, OnDashStarted, OnChargeImpact + `GetChargeAlpha()` for HUD |
-| Utility | **Heroic Leap** | Hold-to-aim leap, small AoE damage + 10% slow for 5s on landing; 10 kills reset the CD | **Not built** — same reason (slot currently GA_WarriorCharge placeholder) |
+| Utility | **All in!** | Instant defensive stance (Die by the Sword × Frenzied Regeneration): 100% parry for 5s + health regen ×3 (+200%) for 5s; CD 25s hasted | **LIVE** (`RLAllInAbility`, wired into Classes.csv). Parry = `State.Parry` loose tag, negated at the top of the damage execution (works against any attacker for free; distinct from `State.Invulnerable` so future unparryable damage can pierce it). Regen surge = `ApplyTemporaryRegenMultiplier` on the hero, folded into Tick's regen next to the Battle Trance healing bonus (they stack multiplicatively). Tunables on the ability: BuffDurationSeconds, RegenMultiplier, CooldownSeconds. BP hook `OnAllIn` for montage/VFX. (Previous design here was Heroic Leap — shelved.) |
 
 ## Talent tree (graph-gated)
 
@@ -81,7 +81,14 @@ converted; revisit when percent modifiers exist:
     you bounce back and recoil), whiff into open air (no recoil). Optional
     polish: BP subclass `GA_RecklessAbandon` with windup/dash montages +
     VFX on the OnCharge*/OnDash* hooks, then point DT_Classes at it.
-11. Loader-feel testing: aim ~45° up and full-charge — you launch along
+11. All in!: reimport **DT_Classes** (Warrior Utility now points at the native
+    `RLAllInAbility` instead of the GA_WarriorCharge placeholder). Press SHIFT
+    in PIE — the utility slot shows a 25s radial cooldown; stand in a wolf pack
+    and health doesn't drop for 5s (`showdebug abilitysystem` on the hero shows
+    `State.Parry` appear then fall off); pop it while hurt and regen visibly
+    triples. Optional polish: BP subclass `GA_AllIn` with a stance montage/VFX
+    on the OnAllIn hook, then point DT_Classes at it.
+12. Loader-feel testing: aim ~45° up and full-charge — you launch along
     the aim and keep sailing in an arc when the distance runs out
     (momentum carry). Dash at a ramp from the ground — it rides up the
     slope instead of bonking. Midair, dive steeply at open ground — soft

@@ -173,6 +173,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Movement")
 	void ApplyTemporarySpeedMultiplier(float Multiplier, float Seconds);
 
+	/**
+	 * Short-lived health-regen multiplier (All in!). Folded into Tick's regen
+	 * formula alongside the Battle Trance healing bonus. Reapplying overwrites
+	 * the previous one.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|BattleTrance")
+	void ApplyTemporaryRegenMultiplier(float Multiplier, float Seconds);
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<URLAbilitySystemComponent> AbilitySystemComponent;
@@ -241,6 +249,10 @@ protected:
 	// Temporary slow/boost state consumed by Tick's walk-speed formula.
 	float TempSpeedMultiplier = 1.f;
 	double TempSpeedUntilSeconds = 0.0;
+
+	// Temporary regen boost consumed by Tick's health-regen formula.
+	float TempRegenMultiplier = 1.f;
+	double TempRegenUntilSeconds = 0.0;
 
 protected:
 	FVector2D RawMoveInput;

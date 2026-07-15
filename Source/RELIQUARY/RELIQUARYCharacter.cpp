@@ -341,12 +341,16 @@ void ARELIQUARYCharacter::Tick(float Dt)
 	// Battle Trance boosts healing received and quickens the step near death.
 	if (AbilitySystemComponent && Attributes && !bDying)
 	{
+		if (TempRegenMultiplier != 1.f && GetWorld()->GetTimeSeconds() >= TempRegenUntilSeconds)
+		{
+			TempRegenMultiplier = 1.f;
+		}
 		const float HealthRegen = Attributes->GetHealthRegen();
 		if (HealthRegen != 0.f && Attributes->GetHealth() < Attributes->GetMaxHealth())
 		{
 			AbilitySystemComponent->ApplyModToAttribute(
 				URLAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive,
-				HealthRegen * (1.f + GetTranceHealingBonus()) * Dt);
+				HealthRegen * (1.f + GetTranceHealingBonus()) * TempRegenMultiplier * Dt);
 		}
 
 		if (TempSpeedMultiplier != 1.f && GetWorld()->GetTimeSeconds() >= TempSpeedUntilSeconds)
@@ -417,6 +421,16 @@ void ARELIQUARYCharacter::ApplyTemporarySpeedMultiplier(float Multiplier, float 
 	}
 	TempSpeedMultiplier = Multiplier;
 	TempSpeedUntilSeconds = GetWorld()->GetTimeSeconds() + Seconds;
+}
+
+void ARELIQUARYCharacter::ApplyTemporaryRegenMultiplier(float Multiplier, float Seconds)
+{
+	if (Seconds <= 0.f || Multiplier < 0.f)
+	{
+		return;
+	}
+	TempRegenMultiplier = Multiplier;
+	TempRegenUntilSeconds = GetWorld()->GetTimeSeconds() + Seconds;
 }
 
 void ARELIQUARYCharacter::OnInteract()
