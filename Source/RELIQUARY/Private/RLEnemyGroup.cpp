@@ -168,7 +168,7 @@ void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector&
 			continue;
 		}
 		const FVector To = Member->GetActorLocation() - Center;
-		Ring.Add({ Member, FMath::Atan2(To.Y, To.X) });
+		Ring.Add({ Member, static_cast<float>(FMath::Atan2(To.Y, To.X)) });
 	}
 	if (Ring.Num() == 0)
 	{
