@@ -145,9 +145,41 @@ FVector ARLEnemyGroup::ProjectPoint(const FVector& Point) const
 
 FVector ARLEnemyGroup::PickWanderPoint(const FVector& Origin, float MinRange, float MaxRange)
 {
-	const float Angle = Rng.FRandRange(0.f, 2.f * PI);
-	const float Range = Rng.FRandRange(MinRange, MaxRange);
-	return ProjectPoint(Origin + FVector(FMath::Cos(Angle) * Range, FMath::Sin(Angle) * Range, 0.f));
+	UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	const bool bWorldHasNav = NavSystem && NavSystem->GetDefaultNavDataInstance() != nullptr;
+
+	// Wander targets must land ON the navmesh. Long legs near the map edge
+	// used to fail projection, fall back to a ground trace past the mesh, and
+	// send whole packs marching off the world. Reroll with shrinking range
+	// until something sticks; a group that finds nothing stays put this leg.
+	float Range = Rng.FRandRange(MinRange, MaxRange);
+	for (int32 Try = 0; Try < 6; ++Try)
+	{
+		const float Angle = Rng.FRandRange(0.f, 2.f * PI);
+		const FVector Candidate = Origin +
+			FVector(FMath::Cos(Angle) * Range, FMath::Sin(Angle) * Range, 0.f);
+
+		if (bWorldHasNav)
+		{
+			FNavLocation Projected;
+			if (NavSystem->ProjectPointToNavigation(Candidate, Projected, FVector(800.f, 800.f, 2000.f)))
+			{
+				return Projected.Location;
+			}
+			Range = FMath::Max(MinRange * 0.5f, Range * 0.6f);
+			continue;
+		}
+
+		// No navmesh in this map: trace to ground and call it good.
+		FHitResult Hit;
+		if (GetWorld()->LineTraceSingleByChannel(Hit,
+			Candidate + FVector(0.f, 0.f, 2000.f), Candidate - FVector(0.f, 0.f, 2000.f), ECC_WorldStatic))
+		{
+			return Hit.ImpactPoint;
+		}
+		return Candidate;
+	}
+	return Origin;
 }
 
 bool ARLEnemyGroup::RingMatches(const TArray<ARLEnemyBase*>& Alive, ARLEnemyBase* Exclude) const

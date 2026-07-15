@@ -310,8 +310,11 @@ void ARLWolfPack::TickPursue(float DeltaSeconds, const TArray<ARLEnemyBase*>& Al
 
 	const FVector HeroLocation = Hero->GetActorLocation();
 
-	// The hero slowing down — or the pack catching up — re-forms the ring.
-	if (Hero->GetVelocity().Size2D() < PursueCalmSpeed || GetMinHeroDistance() < CircleRadius * 1.1f)
+	// Only the hero SLOWING re-forms the ring. Proximity must not count:
+	// the lunger gets close by design every few seconds, and using distance
+	// here flapped Pursue<->Encircle constantly while the hero ran — the
+	// whole pack stuttered with every flip.
+	if (Hero->GetVelocity().Size2D() < PursueCalmSpeed)
 	{
 		CalmScoreSeconds += DeltaSeconds;
 		if (CalmScoreSeconds >= 0.7f)

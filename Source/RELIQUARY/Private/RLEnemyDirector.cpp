@@ -4,6 +4,7 @@
 #include "RLRunManagerSubsystem.h"
 #include "RLDataSubsystem.h"
 #include "RLDataTypes.h"
+#include "Camera/PlayerCameraManager.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
@@ -50,13 +51,14 @@ void ARLEnemyDirector::Tick(float DeltaSeconds)
 		return;
 	}
 
-	// Income: base rate from the zone, multiplied by current difficulty.
+	// Income: base rate from the zone, multiplied by current difficulty and
+	// the global scale (tuned below 1 so the world feels stalked, not flooded).
 	float CreditRate = 3.f;
 	if (const FRLZoneRow* Zone = Data->FindZone(RunManager->GetCurrentZoneIndex()))
 	{
 		CreditRate = Zone->DirectorCreditRate;
 	}
-	Credits += CreditRate * RunManager->GetDifficultyCoefficient() * DeltaSeconds;
+	Credits += CreditRate * RunManager->GetDifficultyCoefficient() * CreditIncomeScale * DeltaSeconds;
 
 	TimeSinceSpend += DeltaSeconds;
 	if (TimeSinceSpend >= SpawnInterval)
@@ -193,21 +195,40 @@ bool ARLEnemyDirector::FindSpawnPoint(FVector& OutLocation) const
 
 	UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 
-	for (int32 Try = 0; Try < 10; ++Try)
+	// Bias against spawning where the player is looking: prefer candidates
+	// outside a (widened) view cone, or inside it but occluded by geometry.
+	// A visible spot is kept as a fallback — spawning beats not spawning.
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	APlayerCameraManager* Camera = PC ? PC->PlayerCameraManager : nullptr;
+	FVector CameraLocation = FVector::ZeroVector;
+	FVector CameraForward = FVector::ForwardVector;
+	float CosViewCone = -1.f;
+	if (Camera)
+	{
+		CameraLocation = Camera->GetCameraLocation();
+		CameraForward = Camera->GetCameraRotation().Vector();
+		CosViewCone = FMath::Cos(FMath::DegreesToRadians(Camera->GetFOVAngle() * 0.5f + 12.f));
+	}
+
+	bool bHaveVisibleFallback = false;
+	FVector VisibleFallback = FVector::ZeroVector;
+
+	for (int32 Try = 0; Try < 14; ++Try)
 	{
 		const float Angle = FMath::FRandRange(0.f, 2.f * PI);
 		const float Distance = FMath::FRandRange(MinSpawnDistance, MaxSpawnDistance);
 		const FVector Candidate = Hero->GetActorLocation() +
 			FVector(FMath::Cos(Angle) * Distance, FMath::Sin(Angle) * Distance, 0.f);
 
+		FVector Point;
 		if (NavSystem)
 		{
 			FNavLocation Projected;
-			if (NavSystem->ProjectPointToNavigation(Candidate, Projected, FVector(500.f, 500.f, 1000.f)))
+			if (!NavSystem->ProjectPointToNavigation(Candidate, Projected, FVector(500.f, 500.f, 1000.f)))
 			{
-				OutLocation = Projected.Location + FVector(0.f, 0.f, 100.f);
-				return true;
+				continue;
 			}
+			Point = Projected.Location + FVector(0.f, 0.f, 100.f);
 		}
 		else
 		{
@@ -215,12 +236,43 @@ bool ARLEnemyDirector::FindSpawnPoint(FVector& OutLocation) const
 			FHitResult Hit;
 			const FVector Start = Candidate + FVector(0.f, 0.f, 2000.f);
 			const FVector End = Candidate - FVector(0.f, 0.f, 2000.f);
-			if (GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_WorldStatic))
+			if (!GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_WorldStatic))
 			{
-				OutLocation = Hit.ImpactPoint + FVector(0.f, 0.f, 100.f);
-				return true;
+				continue;
+			}
+			Point = Hit.ImpactPoint + FVector(0.f, 0.f, 100.f);
+		}
+
+		bool bHidden = true;
+		if (Camera)
+		{
+			const FVector ToPoint = (Point - CameraLocation).GetSafeNormal();
+			if ((ToPoint | CameraForward) > CosViewCone)
+			{
+				// Inside the view cone: hidden only if something blocks the eye line.
+				FHitResult Hit;
+				FCollisionQueryParams Params(FName(TEXT("RLSpawnSightline")), false, Hero);
+				bHidden = GetWorld()->LineTraceSingleByChannel(
+					Hit, CameraLocation, Point + FVector(0.f, 0.f, 150.f), ECC_Visibility, Params);
 			}
 		}
+
+		if (bHidden)
+		{
+			OutLocation = Point;
+			return true;
+		}
+		if (!bHaveVisibleFallback)
+		{
+			bHaveVisibleFallback = true;
+			VisibleFallback = Point;
+		}
+	}
+
+	if (bHaveVisibleFallback)
+	{
+		OutLocation = VisibleFallback;
+		return true;
 	}
 	return false;
 }

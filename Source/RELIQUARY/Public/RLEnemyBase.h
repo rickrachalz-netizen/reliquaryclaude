@@ -203,6 +203,8 @@ protected:
 	float TimeSinceAttack = 0.f;
 	float RepathTimer = 0.f;
 	bool bNavMovement = false;
+	/** Straight-line fallback is only legal on maps with no navmesh at all. */
+	bool bBeelineAllowed = true;
 	double StunnedUntilSeconds = 0.0;
 
 	// --- Group order state ---

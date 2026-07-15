@@ -24,6 +24,13 @@ void ARLGoblinGang::TickGroup(float DeltaSeconds)
 		(FVector::Dist2D(Hero->GetActorLocation(), AnchorLocation) < AlertRange
 			|| WasDamagedWithin(DamageAlertSeconds));
 
+	// A runner that gained company (another runner joined it mid-flight) is a
+	// gang again — camp up and let the courage table take over next tick.
+	if ((State == EGangState::Flee || State == EGangState::Seek) && Alive.Num() > 1)
+	{
+		EnterCircle(/*bReanchor=*/true);
+	}
+
 	// Courage is a pure function of headcount, so deaths mid-fight re-branch
 	// on the spot: a hunting mob whittled to 3 loses its nerve for the chase,
 	// and the last goblin standing always breaks and runs.
@@ -58,6 +65,9 @@ void ARLGoblinGang::TickGroup(float DeltaSeconds)
 	case EGangState::Flee:
 		TickFlee(DeltaSeconds, Alive);
 		break;
+	case EGangState::Seek:
+		TickSeek(DeltaSeconds, Alive);
+		break;
 	}
 }
 
@@ -78,17 +88,11 @@ void ARLGoblinGang::EnterRoam(int32 AliveCount)
 {
 	State = EGangState::Roam;
 
-	// A lone goblin drifts toward the nearest gang it can sense — but never
-	// toward one that's camped next to the hero; everyone else just picks
-	// somewhere new to set up the circle.
+	// A calm lone goblin ambles toward the nearest gang it can sense;
+	// everyone else just picks somewhere new to set up the circle.
 	APawn* Hero = GetHero();
-	const FVector HeroLocation = Hero ? Hero->GetActorLocation() : FVector::ZeroVector;
-	const float HeroAvoidRadius = AlertRange * 1.4f;
-
 	float GangDistance = 0.f;
-	ARLGoblinGang* NearestGang = AliveCount == 1
-		? FindNearestGang(SeekRange, GangDistance, Hero ? &HeroLocation : nullptr, HeroAvoidRadius)
-		: nullptr;
+	ARLGoblinGang* NearestGang = AliveCount == 1 ? FindNearestGang(SeekRange, GangDistance) : nullptr;
 	if (NearestGang)
 	{
 		// Jitter kept well inside MergeRange so arriving means merging.
@@ -97,58 +101,29 @@ void ARLGoblinGang::EnterRoam(int32 AliveCount)
 		UE_LOG(LogRELIQUARY, Verbose, TEXT("GoblinGang %s: lone goblin heading for %s"),
 			*GetName(), *NearestGang->GetName());
 	}
+	else if (AliveCount == 1 && Hero)
+	{
+		// No friends left anywhere: drift, favoring the leg that grows the
+		// gap — pure random picks walked the lone survivor straight back
+		// into the hero half the time (the old ping-pong).
+		FVector Best = PickWanderPoint(AnchorLocation, RoamTargetRangeMin, RoamTargetRangeMax);
+		float BestDistance = FVector::Dist2D(Best, Hero->GetActorLocation());
+		for (int32 i = 0; i < 2; ++i)
+		{
+			const FVector Candidate = PickWanderPoint(AnchorLocation, RoamTargetRangeMin, RoamTargetRangeMax);
+			const float Distance = FVector::Dist2D(Candidate, Hero->GetActorLocation());
+			if (Distance > BestDistance)
+			{
+				Best = Candidate;
+				BestDistance = Distance;
+			}
+		}
+		RoamTarget = Best;
+	}
 	else
 	{
 		RoamTarget = PickWanderPoint(AnchorLocation, RoamTargetRangeMin, RoamTargetRangeMax);
 	}
-
-	// Whatever was picked, the leg itself must give the hero a wide berth.
-	RoamTarget = BendTargetAroundHero(GetCentroid(), RoamTarget);
-}
-
-FVector ARLGoblinGang::BendTargetAroundHero(const FVector& From, const FVector& Target) const
-{
-	APawn* Hero = GetHero();
-	if (!Hero)
-	{
-		return Target;
-	}
-
-	const FVector HeroLocation = Hero->GetActorLocation();
-	const float AvoidRadius = AlertRange * 1.4f;
-
-	const FVector Closest = FMath::ClosestPointOnSegment(HeroLocation, From, Target);
-	if (FVector::Dist2D(Closest, HeroLocation) > AvoidRadius
-		&& FVector::Dist2D(Target, HeroLocation) > AvoidRadius)
-	{
-		return Target;	// the straight run already clears them
-	}
-
-	const FVector Direction = (Target - From).GetSafeNormal2D();
-	const float Length = FVector::Dist2D(From, Target);
-	if (Direction.IsNearlyZero() || Length < KINDA_SMALL_NUMBER)
-	{
-		return Target;
-	}
-
-	// Swing the leg away from the hero's side of the line until it clears.
-	const FVector ToHero = (HeroLocation - From).GetSafeNormal2D();
-	const float Side = FVector::CrossProduct(Direction, ToHero).Z >= 0.f ? -1.f : 1.f;
-	static const float BendAngles[] = { 50.f, 90.f, 130.f };
-	for (const float Angle : BendAngles)
-	{
-		const FVector Bent = Direction.RotateAngleAxis(Side * Angle, FVector::UpVector);
-		const FVector Candidate = From + Bent * Length;
-		const FVector CandidateClosest = FMath::ClosestPointOnSegment(HeroLocation, From, Candidate);
-		if (FVector::Dist2D(CandidateClosest, HeroLocation) > AvoidRadius
-			&& FVector::Dist2D(Candidate, HeroLocation) > AvoidRadius)
-		{
-			return ProjectPoint(Candidate);
-		}
-	}
-
-	// Boxed in: head dead away and try again on the next leg.
-	return ProjectPoint(From + (From - HeroLocation).GetSafeNormal2D() * Length);
 }
 
 void ARLGoblinGang::EnterFight()
@@ -315,9 +290,7 @@ void ARLGoblinGang::TickFlee(float DeltaSeconds, const TArray<ARLEnemyBase*>& Al
 		LastKnownHeroLocation = Hero->GetActorLocation();
 	}
 
-	// Reaching any gang mid-flee means joining on the spot — and the
-	// reinforced gang learns where the hero chased the runner from, forming
-	// a posse that marches there.
+	// Stumbling into a gang during the panic sprint means joining on the spot.
 	float GangDistance = 0.f;
 	ARLGoblinGang* Refuge = FindNearestGang(SeekRange, GangDistance);
 	if (Refuge && FVector::Dist2D(GetCentroid(), Refuge->GetCentroid()) <= MergeRange * 1.2f)
@@ -331,51 +304,46 @@ void ARLGoblinGang::TickFlee(float DeltaSeconds, const TArray<ARLEnemyBase*>& Al
 		return;
 	}
 
-	if (!Hero || FVector::Dist(RunnerLocation, Hero->GetActorLocation()) > FleeSafeRange)
+	// The flee is ONE decision: a short panic burst dead away, then commit to
+	// the nearest gang and run there without reconsidering (Seek). Only a
+	// goblin with no friends left anywhere keeps running until it's safe.
+	const bool bBurst = GetWorld()->GetTimeSeconds() - FleeStartSeconds <= FleeBurstSeconds;
+	if (!bBurst)
 	{
-		// Safe: back to wandering (and looking for a new gang to join).
-		AnchorLocation = ProjectPoint(GetCentroid());
-		EnterRoam(Alive.Num());
-		return;
+		if (Refuge)
+		{
+			EnterSeek(Refuge);
+			return;
+		}
+		if (!Hero || FVector::Dist(RunnerLocation, Hero->GetActorLocation()) > FleeSafeRange)
+		{
+			AnchorLocation = ProjectPoint(GetCentroid());
+			EnterRoam(Alive.Num());
+			return;
+		}
 	}
 
 	// Escape decisions are rate-limited: pick a line, commit to it for a
 	// beat, then reassess. Re-deciding every frame made the runner wobble.
 	FleeRepathTimer -= DeltaSeconds;
-	if (FleeRepathTimer <= 0.f || FleeEscapePoint.IsNearlyZero())
+	if ((FleeRepathTimer <= 0.f || FleeEscapePoint.IsNearlyZero()) && Hero)
 	{
 		FleeRepathTimer = 0.4f;
 
-		// Away from the hero, bent toward a refuge gang when a SAFE one
-		// exists (never toward a gang that's camped next to the hero).
+		// Candidate escape points straight away from the hero, refusing any
+		// the navmesh projection snaps back toward them (at nav edges the
+		// nearest on-mesh point can sit BEHIND the runner — chasing it made
+		// goblins boomerang at the player).
 		const FVector HeroLocation = Hero->GetActorLocation();
 		const FVector Away = (RunnerLocation - HeroLocation).GetSafeNormal2D();
-		FVector Desired = Away;
-
-		float BiasDistance = 0.f;
-		ARLGoblinGang* BiasGang = FindNearestGang(SeekRange, BiasDistance, &HeroLocation, AlertRange * 1.4f);
-		if (BiasGang)
-		{
-			const FVector TowardRefuge = (BiasGang->GetCentroid() - RunnerLocation).GetSafeNormal2D();
-			const FVector Blend = (Away + TowardRefuge * 1.25f).GetSafeNormal2D();
-			if (!Blend.IsNearlyZero())
-			{
-				Desired = Blend;
-			}
-		}
-
-		// Candidate escape points, refusing any the navmesh projection snaps
-		// back toward the hero (at nav edges the nearest on-mesh point can sit
-		// BEHIND the runner — chasing it made goblins boomerang at the player).
 		const FVector Perpendicular(-Away.Y, Away.X, 0.f);
-		const FVector Candidates[4] = {
-			Desired,
+		const FVector Candidates[3] = {
 			Away,
 			(Away + Perpendicular).GetSafeNormal2D(),
 			(Away - Perpendicular).GetSafeNormal2D()
 		};
 		const float HeroDistanceNow = FVector::Dist2D(RunnerLocation, HeroLocation);
-		FleeEscapePoint = RunnerLocation + Desired * FleeStepDistance;	// beeline fallback
+		FleeEscapePoint = RunnerLocation + Away * FleeStepDistance;	// beeline fallback
 		for (const FVector& Candidate : Candidates)
 		{
 			const FVector Projected = ProjectPoint(RunnerLocation + Candidate * FleeStepDistance);
@@ -387,14 +355,81 @@ void ARLGoblinGang::TickFlee(float DeltaSeconds, const TArray<ARLEnemyBase*>& Al
 		}
 	}
 
-	// The first moments of a flee are a panicked burst of speed.
-	const bool bBurst = GetWorld()->GetTimeSeconds() - FleeStartSeconds <= FleeBurstSeconds;
-	Runner->SetGroupOrder(ERLGroupOrder::MoveTo, FleeEscapePoint,
-		bBurst ? FleeBurstSpeedScale : FleeSpeedScale, 100.f);
+	if (!FleeEscapePoint.IsNearlyZero())
+	{
+		Runner->SetGroupOrder(ERLGroupOrder::MoveTo, FleeEscapePoint,
+			bBurst ? FleeBurstSpeedScale : FleeSpeedScale, 100.f);
+	}
 
 	if (bDrawDebug)
 	{
 		DrawDebugLine(GetWorld(), RunnerLocation, FleeEscapePoint, FColor::Orange, false, -1.f, 0, 2.f);
+	}
+}
+
+void ARLGoblinGang::EnterSeek(ARLGoblinGang* Refuge)
+{
+	State = EGangState::Seek;
+	SeekRefuge = Refuge;
+	SeekRefreshTimer = 0.f;
+	SeekTarget = FVector::ZeroVector;
+	UE_LOG(LogRELIQUARY, Verbose, TEXT("GoblinGang %s: last goblin committed to joining %s"),
+		*GetName(), *Refuge->GetName());
+}
+
+void ARLGoblinGang::TickSeek(float DeltaSeconds, const TArray<ARLEnemyBase*>& Alive)
+{
+	// Committed: no threat checks, no dwells, no new decisions — the runner
+	// goes to its friends no matter where the hero stands, and the navmesh
+	// routes it around bodies and terrain on the way.
+	APawn* Hero = GetHero();
+	if (Hero)
+	{
+		LastKnownHeroLocation = Hero->GetActorLocation();
+	}
+
+	ARLGoblinGang* Refuge = SeekRefuge.Get();
+	if (!Refuge || !IsValid(Refuge) || Refuge->GetAliveCount() == 0)
+	{
+		// That gang is gone; commit to another, or wander if none remain.
+		float GangDistance = 0.f;
+		Refuge = FindNearestGang(SeekRange, GangDistance);
+		if (!Refuge)
+		{
+			AnchorLocation = ProjectPoint(GetCentroid());
+			EnterRoam(Alive.Num());
+			return;
+		}
+		SeekRefuge = Refuge;
+		SeekRefreshTimer = 0.f;
+	}
+
+	if (FVector::Dist2D(GetCentroid(), Refuge->GetCentroid()) <= MergeRange * 1.2f)
+	{
+		// Made it: join, and hand over where the hero chased the runner from —
+		// a calm gang marches there as a posse.
+		const FVector Intel = LastKnownHeroLocation;
+		Refuge->AbsorbGang(this);	// destroys this gang — only locals below
+		if (!Intel.IsNearlyZero())
+		{
+			Refuge->ReceiveHeroIntel(Intel);
+		}
+		return;
+	}
+
+	// The refuge gang wanders too; refresh the destination on a slow cadence.
+	SeekRefreshTimer -= DeltaSeconds;
+	if (SeekRefreshTimer <= 0.f || SeekTarget.IsNearlyZero())
+	{
+		SeekRefreshTimer = 0.75f;
+		SeekTarget = ProjectPoint(Refuge->GetCentroid());
+	}
+
+	Alive[0]->SetGroupOrder(ERLGroupOrder::MoveTo, SeekTarget, FleeSpeedScale, 120.f);
+
+	if (bDrawDebug)
+	{
+		DrawDebugLine(GetWorld(), Alive[0]->GetActorLocation(), SeekTarget, FColor::Green, false, -1.f, 0, 2.f);
 	}
 }
 

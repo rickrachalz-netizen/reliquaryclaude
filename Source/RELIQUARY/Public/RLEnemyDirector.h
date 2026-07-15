@@ -21,18 +21,26 @@ public:
 
 	/** Seconds between spend attempts. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Director")
-	float SpawnInterval = 6.f;
+	float SpawnInterval = 8.f;
+
+	/** Global income scale — 0.75 means 25% fewer enemies over a run. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Director")
+	float CreditIncomeScale = 0.75f;
 
 	/** Hard cap on simultaneously alive director spawns. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Director")
 	int32 MaxAliveEnemies = 18;
 
-	/** Spawn ring around the hero, in cm. */
+	/**
+	 * Spawn ring around the hero, in cm. Far enough out that packs are
+	 * stumbled upon mid-roam or glimpsed in the distance, not dropped on
+	 * the hero's head.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Director")
-	float MinSpawnDistance = 1400.f;
+	float MinSpawnDistance = 3000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Director")
-	float MaxSpawnDistance = 3200.f;
+	float MaxSpawnDistance = 5200.f;
 
 	/** Elites cost this multiple of the card price. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|Director")

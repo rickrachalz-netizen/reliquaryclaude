@@ -21,6 +21,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "NavigationSystem.h"
 #include "TimerManager.h"
 
 ARLEnemyBase::ARLEnemyBase()
@@ -229,15 +230,47 @@ void ARLEnemyBase::MoveTowardsLocation(const FVector& Target, float AcceptanceRa
 	if (AI && RepathTimer <= 0.f)
 	{
 		RepathTimer = 0.35f;
-		// bStopOnOverlap=false: location moves use the EXACT acceptance radius.
-		// Capsule-inflated arrival would finish paths outside the caller's
-		// stop ring and leave the pawn micro-stepping after drifting targets.
-		const EPathFollowingRequestResult::Type Result = AI->MoveToLocation(
-			Target, AcceptanceRadius, /*bStopOnOverlap=*/false, /*bUsePathfinding=*/true,
-			/*bProjectDestinationToNavigation=*/true);
-		bNavMovement = Result != EPathFollowingRequestResult::Failed;
+
+		UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+		const bool bWorldHasNav = NavSystem && NavSystem->GetDefaultNavDataInstance() != nullptr;
+
+		// Snap the goal onto the navmesh ourselves, with a generous extent.
+		// Group targets are geometric (ring slots, formation offsets, wander
+		// legs) and can hang past the mesh edge; the engine's own projection
+		// uses a tiny extent, fails, and the old straight-line fallback then
+		// marched enemies clean off the map.
+		FVector Goal = Target;
+		bool bGoalReachable = !bWorldHasNav;
+		if (bWorldHasNav)
+		{
+			FNavLocation Projected;
+			if (NavSystem->ProjectPointToNavigation(Target, Projected, FVector(600.f, 600.f, 2000.f)))
+			{
+				Goal = Projected.Location;
+				bGoalReachable = true;
+			}
+		}
+
+		if (bGoalReachable)
+		{
+			// bStopOnOverlap=false: location moves use the EXACT acceptance
+			// radius. Capsule-inflated arrival would finish paths outside the
+			// caller's stop ring and leave the pawn micro-stepping.
+			const EPathFollowingRequestResult::Type Result = AI->MoveToLocation(
+				Goal, AcceptanceRadius, /*bStopOnOverlap=*/false, /*bUsePathfinding=*/true,
+				/*bProjectDestinationToNavigation=*/false);
+			bNavMovement = Result != EPathFollowingRequestResult::Failed;
+		}
+		else
+		{
+			bNavMovement = false;
+		}
+
+		// With a navmesh present, a failed move means the spot is genuinely
+		// unreachable — hold this beat rather than walking off the world.
+		bBeelineAllowed = !bWorldHasNav;
 	}
-	if (!bNavMovement)
+	if (!bNavMovement && bBeelineAllowed)
 	{
 		AddMovementInput((Target - GetActorLocation()).GetSafeNormal2D());
 	}
