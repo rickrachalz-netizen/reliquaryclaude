@@ -113,7 +113,20 @@ void ARLGoblinGang::EnterHunt()
 void ARLGoblinGang::EnterFlee()
 {
 	State = EGangState::Flee;
+	FleeStartSeconds = GetWorld()->GetTimeSeconds();
 	UE_LOG(LogRELIQUARY, Verbose, TEXT("GoblinGang %s: last goblin fleeing"), *GetName());
+}
+
+void ARLGoblinGang::ReceiveHeroIntel(const FVector& HeroLocation)
+{
+	if (!IsCalm())
+	{
+		return;	// a gang already in a fight has fresher intel of its own
+	}
+	State = EGangState::Roam;
+	RoamTarget = ProjectPoint(HeroLocation);
+	UE_LOG(LogRELIQUARY, Verbose, TEXT("GoblinGang %s: posse marching to the hero's last known position (%d strong)"),
+		*GetName(), GetAliveCount());
 }
 
 void ARLGoblinGang::TickCalm(float DeltaSeconds, const TArray<ARLEnemyBase*>& Alive, bool bThreatened)
@@ -232,8 +245,30 @@ void ARLGoblinGang::TickFlee(const TArray<ARLEnemyBase*>& Alive)
 {
 	APawn* Hero = GetHero();
 	ARLEnemyBase* Runner = Alive[0];
+	const FVector RunnerLocation = Runner->GetActorLocation();
 
-	if (!Hero || FVector::Dist(Runner->GetActorLocation(), Hero->GetActorLocation()) > FleeSafeRange)
+	if (Hero)
+	{
+		LastKnownHeroLocation = Hero->GetActorLocation();
+	}
+
+	// The sprint has a destination: the nearest gang. Reaching it mid-flee
+	// means joining on the spot — and the reinforced gang learns where the
+	// hero chased the runner from, forming a posse that marches there.
+	float GangDistance = 0.f;
+	ARLGoblinGang* Refuge = FindNearestGang(SeekRange, GangDistance);
+	if (Refuge && FVector::Dist2D(GetCentroid(), Refuge->GetCentroid()) <= MergeRange * 1.2f)
+	{
+		const FVector Intel = LastKnownHeroLocation;
+		Refuge->AbsorbGang(this);	// destroys this gang — only locals below
+		if (!Intel.IsNearlyZero())
+		{
+			Refuge->ReceiveHeroIntel(Intel);
+		}
+		return;
+	}
+
+	if (!Hero || FVector::Dist(RunnerLocation, Hero->GetActorLocation()) > FleeSafeRange)
 	{
 		// Safe: back to wandering (and looking for a new gang to join).
 		AnchorLocation = ProjectPoint(GetCentroid());
@@ -241,13 +276,50 @@ void ARLGoblinGang::TickFlee(const TArray<ARLEnemyBase*>& Alive)
 		return;
 	}
 
-	const FVector Away = (Runner->GetActorLocation() - Hero->GetActorLocation()).GetSafeNormal2D();
-	const FVector Escape = ProjectPoint(Runner->GetActorLocation() + Away * FleeStepDistance);
-	Runner->SetGroupOrder(ERLGroupOrder::MoveTo, Escape, FleeSpeedScale, 100.f);
+	// Escape direction: away from the hero, bent toward the refuge gang when
+	// one exists — the panic sprint runs somewhere, not just anywhere.
+	const FVector Away = (RunnerLocation - Hero->GetActorLocation()).GetSafeNormal2D();
+	FVector Desired = Away;
+	if (Refuge)
+	{
+		const FVector TowardRefuge = (Refuge->GetCentroid() - RunnerLocation).GetSafeNormal2D();
+		const FVector Blend = (Away + TowardRefuge * 1.25f).GetSafeNormal2D();
+		if (!Blend.IsNearlyZero())
+		{
+			Desired = Blend;
+		}
+	}
+
+	// Candidate escape points, refusing any the navmesh projection snaps back
+	// toward the hero (at nav edges the nearest on-mesh point can sit BEHIND
+	// the runner — chasing it made fleeing goblins boomerang at the player).
+	const FVector Perpendicular(-Away.Y, Away.X, 0.f);
+	const FVector Candidates[4] = {
+		Desired,
+		Away,
+		(Away + Perpendicular).GetSafeNormal2D(),
+		(Away - Perpendicular).GetSafeNormal2D()
+	};
+	const float HeroDistanceNow = FVector::Dist2D(RunnerLocation, Hero->GetActorLocation());
+	FVector Escape = RunnerLocation + Desired * FleeStepDistance;	// beeline fallback
+	for (const FVector& Candidate : Candidates)
+	{
+		const FVector Projected = ProjectPoint(RunnerLocation + Candidate * FleeStepDistance);
+		if (FVector::Dist2D(Projected, Hero->GetActorLocation()) > HeroDistanceNow + 100.f)
+		{
+			Escape = Projected;
+			break;
+		}
+	}
+
+	// The first moments of a flee are a panicked burst of speed.
+	const bool bBurst = GetWorld()->GetTimeSeconds() - FleeStartSeconds <= FleeBurstSeconds;
+	Runner->SetGroupOrder(ERLGroupOrder::MoveTo, Escape,
+		bBurst ? FleeBurstSpeedScale : FleeSpeedScale, 100.f);
 
 	if (bDrawDebug)
 	{
-		DrawDebugLine(GetWorld(), Runner->GetActorLocation(), Escape, FColor::Orange, false, -1.f, 0, 2.f);
+		DrawDebugLine(GetWorld(), RunnerLocation, Escape, FColor::Orange, false, -1.f, 0, 2.f);
 	}
 }
 
@@ -288,8 +360,12 @@ void ARLGoblinGang::AbsorbGang(ARLGoblinGang* Consumed)
 	UE_LOG(LogRELIQUARY, Verbose, TEXT("GoblinGang %s: absorbed %d goblins (now %d strong)"),
 		*GetName(), Joining.Num(), GetAliveCount());
 
-	// Fold the newcomers in: reform the circle wherever everyone now is.
-	EnterCircle(/*bReanchor=*/true);
+	// Fold the newcomers in: a calm gang reforms its circle where everyone
+	// now is; a fighting gang just gained reinforcements and stays on task.
+	if (IsCalm())
+	{
+		EnterCircle(/*bReanchor=*/true);
+	}
 }
 
 bool ARLGoblinGang::TryMerge(const TArray<ARLEnemyBase*>& Alive)

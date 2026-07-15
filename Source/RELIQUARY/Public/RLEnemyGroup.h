@@ -83,9 +83,15 @@ protected:
 	 * bearing so nobody crosses anybody. Members already inside Tolerance of
 	 * their slot stand and face Center; the rest walk to it. Exclude skips one
 	 * member (a lunging wolf), and the remaining slots close the gap.
+	 *
+	 * PhaseLead offsets every slot around the ring (radians, signed): slots
+	 * sit perpetually ahead of the members chasing them, so the whole ring
+	 * orbits Center. Pass bHoldFacingAtSlot=false with a lead so members keep
+	 * padding sideways instead of stopping.
 	 */
 	void OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector& Center, float Radius,
-		float SpeedScale, float Tolerance, ARLEnemyBase* Exclude = nullptr);
+		float SpeedScale, float Tolerance, ARLEnemyBase* Exclude = nullptr,
+		float PhaseLead = 0.f, bool bHoldFacingAtSlot = true);
 
 	void PruneMembers();
 };

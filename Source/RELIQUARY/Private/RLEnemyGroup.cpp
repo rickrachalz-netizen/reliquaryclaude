@@ -151,7 +151,7 @@ FVector ARLEnemyGroup::PickWanderPoint(const FVector& Origin, float MinRange, fl
 }
 
 void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector& Center, float Radius,
-	float SpeedScale, float Tolerance, ARLEnemyBase* Exclude)
+	float SpeedScale, float Tolerance, ARLEnemyBase* Exclude, float PhaseLead, bool bHoldFacingAtSlot)
 {
 	struct FRingEntry
 	{
@@ -178,7 +178,7 @@ void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector&
 
 	// Anchor the wheel on the first member's current bearing so slots shift as
 	// little as possible from wherever everyone already stands.
-	const float Phase = Ring[0].Bearing;
+	const float Phase = Ring[0].Bearing + PhaseLead;
 	const float Step = 2.f * PI / Ring.Num();
 	for (int32 i = 0; i < Ring.Num(); ++i)
 	{
@@ -186,9 +186,10 @@ void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector&
 		const FVector Slot = Center +
 			FVector(FMath::Cos(SlotAngle) * Radius, FMath::Sin(SlotAngle) * Radius, 0.f);
 
-		if (FVector::Dist2D(Ring[i].Member->GetActorLocation(), Slot) > Tolerance)
+		if (!bHoldFacingAtSlot || FVector::Dist2D(Ring[i].Member->GetActorLocation(), Slot) > Tolerance)
 		{
-			Ring[i].Member->SetGroupOrder(ERLGroupOrder::MoveTo, Slot, SpeedScale, Tolerance * 0.6f);
+			const float Acceptance = bHoldFacingAtSlot ? Tolerance * 0.6f : 50.f;
+			Ring[i].Member->SetGroupOrder(ERLGroupOrder::MoveTo, Slot, SpeedScale, Acceptance);
 		}
 		else
 		{

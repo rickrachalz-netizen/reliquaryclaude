@@ -117,6 +117,13 @@ void ARLEnemyBase::BeginPlay()
 
 	AbilitySystemComponent->OnDamageTaken.AddDynamic(this, &ARLEnemyBase::HandleDamageTaken);
 	AbilitySystemComponent->OnDeath.AddDynamic(this, &ARLEnemyBase::HandleDeath);
+
+	// Melee mobs converge on the same point; RVO keeps bodies sliding around
+	// each other instead of grinding to a crawl in a shoving match.
+	GetCharacterMovement()->SetAvoidanceEnabled(true);
+	GetCharacterMovement()->AvoidanceConsiderationRadius = 220.f;
+
+	StuckCheckOrigin = GetActorLocation();
 }
 
 void ARLEnemyBase::Tick(float DeltaSeconds)
@@ -177,6 +184,10 @@ void ARLEnemyBase::TickChaseAndStrike(APawn* Hero, float DeltaSeconds)
 	}
 
 	// Chase: nav pathfollowing when a navmesh is available, beeline otherwise.
+	if (TickUnstick(Hero->GetActorLocation(), DeltaSeconds))
+	{
+		return;
+	}
 	AAIController* AI = Cast<AAIController>(GetController());
 	RepathTimer -= DeltaSeconds;
 	if (AI && RepathTimer <= 0.f)
@@ -194,6 +205,10 @@ void ARLEnemyBase::TickChaseAndStrike(APawn* Hero, float DeltaSeconds)
 
 void ARLEnemyBase::MoveTowardsLocation(const FVector& Target, float AcceptanceRadius, float DeltaSeconds)
 {
+	if (TickUnstick(Target, DeltaSeconds))
+	{
+		return;
+	}
 	AAIController* AI = Cast<AAIController>(GetController());
 	RepathTimer -= DeltaSeconds;
 	if (AI && RepathTimer <= 0.f)
@@ -210,6 +225,40 @@ void ARLEnemyBase::MoveTowardsLocation(const FVector& Target, float AcceptanceRa
 	}
 }
 
+bool ARLEnemyBase::TickUnstick(const FVector& Goal, float DeltaSeconds)
+{
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (Now < UnstickUntilSeconds)
+	{
+		AddMovementInput(UnstickDirection);
+		return true;
+	}
+
+	// Sample displacement over ~0.7s windows, but only while trying to move
+	// (StopMoving resets the window, so striking/standing never counts).
+	StuckTimer += DeltaSeconds;
+	if (StuckTimer < 0.7f)
+	{
+		return false;
+	}
+
+	const float Moved = FVector::Dist2D(GetActorLocation(), StuckCheckOrigin);
+	if (Moved < 40.f && FVector::Dist2D(GetActorLocation(), Goal) > 150.f)
+	{
+		// Wedged: sidestep perpendicular for a beat, alternating sides per
+		// attempt, then let the mover plan a fresh path.
+		bUnstickSideRight = !bUnstickSideRight;
+		const FVector ToGoal = (Goal - GetActorLocation()).GetSafeNormal2D();
+		UnstickDirection = FVector(-ToGoal.Y, ToGoal.X, 0.f) * (bUnstickSideRight ? 1.f : -1.f);
+		UnstickUntilSeconds = Now + 0.6;
+		StopMoving();
+		RepathTimer = 0.f;
+	}
+	StuckTimer = 0.f;
+	StuckCheckOrigin = GetActorLocation();
+	return false;
+}
+
 void ARLEnemyBase::StopMoving()
 {
 	if (AAIController* AI = Cast<AAIController>(GetController()))
@@ -217,6 +266,8 @@ void ARLEnemyBase::StopMoving()
 		AI->StopMovement();
 	}
 	bNavMovement = false;
+	StuckTimer = 0.f;
+	StuckCheckOrigin = GetActorLocation();
 }
 
 void ARLEnemyBase::FaceLocation(const FVector& Target, float DeltaSeconds)

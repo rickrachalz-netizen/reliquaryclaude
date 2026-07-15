@@ -222,6 +222,21 @@ protected:
 	void StopMoving();
 	void FaceLocation(const FVector& Target, float DeltaSeconds);
 
+	// --- Stuck recovery (anti-molasses) ---
+	// Wedged on an obstacle or another body, a chaser barely moves while
+	// pushing at full throttle. Both movement paths funnel through this: it
+	// watches actual displacement and breaks a wedge with a short
+	// perpendicular sidestep followed by a fresh repath.
+
+	float StuckTimer = 0.f;
+	FVector StuckCheckOrigin = FVector::ZeroVector;
+	double UnstickUntilSeconds = 0.0;
+	FVector UnstickDirection = FVector::ZeroVector;
+	bool bUnstickSideRight = false;
+
+	/** Returns true while a sidestep is overriding normal movement. */
+	bool TickUnstick(const FVector& Goal, float DeltaSeconds);
+
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamager;
 

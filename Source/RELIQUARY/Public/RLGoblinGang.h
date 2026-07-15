@@ -51,6 +51,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|GoblinGang")
 	float FleeSpeedScale = 1.2f;
 
+	/** The panicked sprint: extra pace for the first moments of a flee. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|GoblinGang")
+	float FleeBurstSeconds = 2.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|GoblinGang")
+	float FleeBurstSpeedScale = 1.6f;
+
 	/** How far ahead the runner projects each escape point. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|GoblinGang")
 	float FleeStepDistance = 1400.f;
@@ -109,11 +116,23 @@ protected:
 	FVector RoamTarget = FVector::ZeroVector;
 	float CircleDwellTimer = 3.f;
 
+	/** When the current flee started (drives the panic burst). */
+	double FleeStartSeconds = 0.0;
+
+	/** Where the runner last saw the hero — handed to the gang it joins. */
+	FVector LastKnownHeroLocation = FVector::ZeroVector;
+
 	void EnterCircle(bool bReanchor);
 	void EnterRoam(int32 AliveCount);
 	void EnterFight();
 	void EnterHunt();
 	void EnterFlee();
+
+	/**
+	 * A fleeing goblin that joined this gang reports where the hero chased it
+	 * from. A calm gang marches there as a posse; a busy gang ignores it.
+	 */
+	void ReceiveHeroIntel(const FVector& HeroLocation);
 
 	void TickCalm(float DeltaSeconds, const TArray<ARLEnemyBase*>& Alive, bool bThreatened);
 	void TickFight(const TArray<ARLEnemyBase*>& Alive);
