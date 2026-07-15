@@ -14,6 +14,7 @@
 
 class UGameplayEffect;
 class URLGameplayAbility;
+class ARLEnemyGroup;
 
 /**
  * Flat attribute bonuses used by gear, talents, boons, and essences.
@@ -267,6 +268,23 @@ struct FRLSpawnCardRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	bool bBoss = false;
+
+	/**
+	 * Pack spawning: each draw spawns PackSizeMin..PackSizeMax members (Cost
+	 * is charged per member; the director banks credits toward a pack it
+	 * can't yet afford). GroupClass names the coordinator that owns the pack
+	 * behavior — a native class (/Script/RELIQUARY.RLWolfPack,
+	 * .RLGoblinGang) or a Blueprint subclass of one. Empty GroupClass leaves
+	 * the members on the classic solo brain even when several spawn at once.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn|Pack")
+	TSoftClassPtr<ARLEnemyGroup> GroupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn|Pack")
+	int32 PackSizeMin = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn|Pack")
+	int32 PackSizeMax = 1;
 };
 
 /** Base class definitions — DT_Classes, rows Warrior/Rogue/Mage. */

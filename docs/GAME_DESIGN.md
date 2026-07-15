@@ -29,7 +29,8 @@ This document maps every system from the production map to its implementation. G
 | Challenge altars | `ARLChallengeAltar`: activate → empowered boss + charge radius → extract or teleport onward |
 | Banking every 3 maps | `URLRunManagerSubsystem::ShouldOfferBankingCrate` → `ARLBankingCrate` |
 | Simple, lethal enemies | `ARLEnemyBase` (difficulty-scaled), elites drop Manalith Shards |
-| Enemy spawning | `ARLEnemyDirector` — RoR2-style credits, spawn cards in `Data/SpawnCards.csv` |
+| Enemies with personality (RoR2) | `ARLEnemyGroup` coordinators steer pack members by pinning orders on the base brain: `ARLWolfPack` roams in formation, surrounds the hero, and cycles one lunging biter at a time; `ARLGoblinGang` circles up at camp, roams, merges with other gangs, and picks fight/hunt/flee purely by headcount (1 flees, 2-3 fight leashed to camp, 4+ hunt, last survivor runs) |
+| Enemy spawning | `ARLEnemyDirector` — RoR2-style credits, spawn cards in `Data/SpawnCards.csv`; pack cards (`GroupClass`, `PackSizeMin/Max`) roll a headcount, cost per member, and the director banks credits toward packs it can't yet afford |
 | Death forfeits resources | `URLRunManagerSubsystem::HandleHeroDeath` (banked crates stay safe) |
 | Autosave at base camp only, locked RNG | `ARLBaseCampGameMode::BeginPlay` saves; seed locked at embark |
 | Excess mana + altar choices | `URLRunManagerSubsystem` currency, dropped as physical magnetized orbs (`ARLManaOrbPickup`) from nodes and kills, totals scaled by the difficulty coefficient (elite ×2, boss ×4; `RLBalance` tuning). `ARLUpgradeAltar` offers 3 seeded boons from `Data/Boons.csv`, priced by `GetOfferedPrice` (base cost × difficulty at roll time). |

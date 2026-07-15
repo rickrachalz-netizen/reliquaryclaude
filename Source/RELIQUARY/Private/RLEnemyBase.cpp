@@ -1,5 +1,6 @@
 #include "RLEnemyBase.h"
 #include "RLAbilitySystemComponent.h"
+#include "RLEnemyGroup.h"
 #include "RLAttributeSet.h"
 #include "RLDamageEffect.h"
 #include "RLEnemyHealthBarWidget.h"
@@ -133,35 +134,38 @@ void ARLEnemyBase::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// A coordinating group (wolf pack, goblin gang) replaces the solo brain.
+	if (IsValid(Group))
+	{
+		ExecuteGroupOrder(DeltaSeconds);
+		return;
+	}
+
 	APawn* Hero = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!Hero)
 	{
 		return;
 	}
 
-	const float Distance = FVector::Dist(GetActorLocation(), Hero->GetActorLocation());
-	if (Distance > AggroRange)
+	if (FVector::Dist(GetActorLocation(), Hero->GetActorLocation()) > AggroRange)
 	{
 		return;
 	}
 
+	TickChaseAndStrike(Hero, DeltaSeconds);
+}
+
+void ARLEnemyBase::TickChaseAndStrike(APawn* Hero, float DeltaSeconds)
+{
 	TimeSinceAttack += DeltaSeconds;
 
-	const float StrikeReach = AttackRange + GetCapsuleComponent()->GetScaledCapsuleRadius();
-	if (Distance <= StrikeReach)
+	const float Distance = FVector::Dist(GetActorLocation(), Hero->GetActorLocation());
+	if (Distance <= GetStrikeReach())
 	{
-		if (AAIController* AI = Cast<AAIController>(GetController()))
-		{
-			AI->StopMovement();
-		}
-		bNavMovement = false;
+		StopMoving();
 
 		// Square up to the hero while winding the next strike.
-		const FVector ToHero = (Hero->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-		if (!ToHero.IsNearlyZero())
-		{
-			SetActorRotation(FMath::RInterpTo(GetActorRotation(), ToHero.Rotation(), DeltaSeconds, 8.f));
-		}
+		FaceLocation(Hero->GetActorLocation(), DeltaSeconds);
 
 		if (TimeSinceAttack >= AttackInterval)
 		{
@@ -186,6 +190,141 @@ void ARLEnemyBase::Tick(float DeltaSeconds)
 	{
 		AddMovementInput((Hero->GetActorLocation() - GetActorLocation()).GetSafeNormal2D());
 	}
+}
+
+void ARLEnemyBase::MoveTowardsLocation(const FVector& Target, float AcceptanceRadius, float DeltaSeconds)
+{
+	AAIController* AI = Cast<AAIController>(GetController());
+	RepathTimer -= DeltaSeconds;
+	if (AI && RepathTimer <= 0.f)
+	{
+		RepathTimer = 0.35f;
+		const EPathFollowingRequestResult::Type Result = AI->MoveToLocation(
+			Target, AcceptanceRadius, /*bStopOnOverlap=*/true, /*bUsePathfinding=*/true,
+			/*bProjectDestinationToNavigation=*/true);
+		bNavMovement = Result != EPathFollowingRequestResult::Failed;
+	}
+	if (!bNavMovement)
+	{
+		AddMovementInput((Target - GetActorLocation()).GetSafeNormal2D());
+	}
+}
+
+void ARLEnemyBase::StopMoving()
+{
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		AI->StopMovement();
+	}
+	bNavMovement = false;
+}
+
+void ARLEnemyBase::FaceLocation(const FVector& Target, float DeltaSeconds)
+{
+	const FVector To = (Target - GetActorLocation()).GetSafeNormal2D();
+	if (!To.IsNearlyZero())
+	{
+		SetActorRotation(FMath::RInterpTo(GetActorRotation(), To.Rotation(), DeltaSeconds, 8.f));
+	}
+}
+
+void ARLEnemyBase::SetGroup(ARLEnemyGroup* InGroup)
+{
+	Group = InGroup;
+	GroupOrder = ERLGroupOrder::None;
+	if (!InGroup)
+	{
+		// Released: restore attribute speed and let the solo brain take over.
+		// (Guarded — groups also release members during world teardown.)
+		if (UCharacterMovementComponent* Move = GetCharacterMovement())
+		{
+			Move->MaxWalkSpeed = GetBaseMoveSpeed();
+		}
+		if (!bDead)
+		{
+			StopMoving();
+		}
+	}
+}
+
+void ARLEnemyBase::SetGroupOrder(ERLGroupOrder InOrder, const FVector& InLocation,
+	float InSpeedScale, float InAcceptanceRadius)
+{
+	if (GroupOrder != InOrder)
+	{
+		// Leaving a movement order: kill the active path request once, and let
+		// a fresh movement order repath immediately.
+		if (GroupOrder == ERLGroupOrder::MoveTo || GroupOrder == ERLGroupOrder::EngageHero)
+		{
+			StopMoving();
+		}
+		RepathTimer = 0.f;
+	}
+	GroupOrder = InOrder;
+	GroupOrderLocation = InLocation;
+	GroupOrderSpeedScale = InSpeedScale;
+	GroupOrderAcceptance = InAcceptanceRadius;
+}
+
+void ARLEnemyBase::ExecuteGroupOrder(float DeltaSeconds)
+{
+	// Group speeds scale off the unmodified MoveSpeed attribute every frame,
+	// so scales never compound and releasing the enemy restores full speed.
+	GetCharacterMovement()->MaxWalkSpeed = FMath::Max(50.f, GetBaseMoveSpeed() * GroupOrderSpeedScale);
+
+	switch (GroupOrder)
+	{
+	case ERLGroupOrder::HoldFacing:
+		FaceLocation(GroupOrderLocation, DeltaSeconds);
+		break;
+
+	case ERLGroupOrder::MoveTo:
+		if (FVector::Dist2D(GetActorLocation(), GroupOrderLocation) > GroupOrderAcceptance)
+		{
+			MoveTowardsLocation(GroupOrderLocation, GroupOrderAcceptance * 0.5f, DeltaSeconds);
+		}
+		else if (bNavMovement)
+		{
+			StopMoving();
+		}
+		break;
+
+	case ERLGroupOrder::EngageHero:
+		if (APawn* Hero = UGameplayStatics::GetPlayerPawn(this, 0))
+		{
+			TickChaseAndStrike(Hero, DeltaSeconds);
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+void ARLEnemyBase::PerformTouchStrike(AActor* Target)
+{
+	if (bDead || !Target)
+	{
+		return;
+	}
+	TimeSinceAttack = 0.f;
+	OnTouchAttack(Target);
+	DealTouchDamage(Target);
+}
+
+float ARLEnemyBase::GetBaseMoveSpeed() const
+{
+	return Attributes ? Attributes->GetMoveSpeed() : BaseMoveSpeed;
+}
+
+float ARLEnemyBase::GetStrikeReach() const
+{
+	return AttackRange + GetCapsuleComponent()->GetScaledCapsuleRadius();
+}
+
+bool ARLEnemyBase::IsStunned() const
+{
+	return GetWorld() && GetWorld()->GetTimeSeconds() < StunnedUntilSeconds;
 }
 
 void ARLEnemyBase::ApplyStun(float Seconds)
@@ -232,6 +371,12 @@ void ARLEnemyBase::HandleDamageTaken(float Damage, AActor* InstigatorActor, bool
 	if (InstigatorActor && InstigatorActor != this)
 	{
 		LastDamager = InstigatorActor;
+	}
+
+	// Pain wakes the whole pack, no matter how far the shot came from.
+	if (!bDead && IsValid(Group))
+	{
+		Group->NotifyMemberDamaged(this, InstigatorActor);
 	}
 
 	// RoR2-style: the bar exists only while the enemy is being fought.

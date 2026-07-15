@@ -29,6 +29,8 @@ Paths are configured in `Config/DefaultGame.ini` under `[/Script/RELIQUARY.RLDat
 
 > **Schema note:** `Data/Essences.csv` gained a **`SourceEnemyId`** column (the spawn-card row name whose first kill drops that essence's shard) and now carries 12 enemy-themed essences alongside the 6 realm ones. If `DT_Essences` already exists, **reimport it** so the new column and rows land.
 
+> **Schema note:** `Data/SpawnCards.csv` gained **`GroupClass`**, **`PackSizeMin`**, and **`PackSizeMax`** columns for pack spawning (wolf packs of 3-6, goblin gangs of 1-5; cost is charged per member). If `DT_SpawnCards` already exists, **reimport it** — until then the director keeps spawning loners.
+
 ## 3. Reparent the existing Blueprints (required)
 
 Open each asset → File → Reparent Blueprint:
@@ -68,6 +70,8 @@ All three are `UInputAction` assets added to the same Input Mapping Context. Eac
 Create Blueprints under **`/Game/Enemies`** parented to **`ARLEnemyBase`**, named to match `Data/SpawnCards.csv`: `BP_Wolf`, `BP_Goblin`, `BP_GoblinPack`, `BP_Orc`, `BP_Necromancer`, `BP_Skeleton`, `BP_DuskWolf`, `BP_StormWisp`, plus bosses `BP_BossAlphaWolf`, `BP_BossOrcWarlord`, `BP_BossBoneTyrant`, `BP_BossGodspawn`. Assign meshes from `Content/Fab` (wolf, goblin, orc, skeleton necromancer are already in the project) and tune `BaseHealth`/`BaseDamage`. Enemies chase the hero and strike in melee out of the box — `ARLEnemyBase` self-possesses an AI controller and runs a built-in chase (navmesh pathing when available, straight-line otherwise). Tune `AggroRange`/`AttackRange`/`AttackInterval` per Blueprint, implement `OnTouchAttack` for swing montages/VFX, or untick `bChaseHero` to drive movement with your own StateTree/BT instead. The Wild God arena needs a map (`L_WildGodArena`) containing a Blueprint of **`ARLWildGodBoss`**.
 
 > **Essence drops:** enemies spawned by the director or a challenge altar get their `EnemyTypeId` stamped automatically (from the spawn-card row name), so first-kill essence shards work with no extra setup. Only **hand-placed** enemy Blueprints need `EnemyTypeId` set in their defaults (e.g. `Wolf`) to drop an essence.
+
+> **Pack behavior (zero setup):** spawn cards with a `GroupClass` hand their members to an invisible coordinator: **wolves** (`RLWolfPack`) roam the map as a pack, surround the hero in a ring, and take turns lunging in for a bite; **goblins** (`RLGoblinGang`) stand in a circle facing each other, amble around the map, and react by headcount — a loner flees (and wanders looking for another gang to join), 2-3 stand and fight near their camp, 4+ hunt you down, and the last survivor of a fight breaks and runs. This needs no Blueprint work, but two things make it shine: give **BP_Wolf** a `BaseMoveSpeed` at or above the hero's (~600+) so the ring can keep up with a running hero, and make sure the **NavMeshBoundsVolume** covers the playable area — without navmesh they fall back to straight-line movement and will bump into terrain. Tick `bDrawDebug` on a spawned group actor (or set it in a BP subclass of the group and point the spawn card at that) to see rings, anchors, and roam targets while tuning. `bChaseHero` must stay ticked — unticking it disables the group orders too.
 
 Until these exist the director quietly spawns nothing — the loop still runs (gather → altar → extract).
 

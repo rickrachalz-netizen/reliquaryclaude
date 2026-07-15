@@ -90,7 +90,12 @@ authoring content (Blueprints, meshes, montages, DataTable rows) and tuning.
 - Enemies: `ARLEnemyBase` (self-possessing AI, difficulty-scaled, built-in
   chase-and-strike, elite/boss modifiers, floating health bar), spawned by the
   credit-based `ARLEnemyDirector` from `Data/SpawnCards.csv`. `ARLWildGodBoss`
-  is the final boss.
+  is the final boss. Pack cards (`GroupClass` + `PackSizeMin/Max` columns)
+  additionally spawn an `ARLEnemyGroup` coordinator that suspends members'
+  solo brains and drives them with orders (`ERLGroupOrder`): `ARLWolfPack`
+  (roam in formation → surround → one wolf lunges at a time) and
+  `ARLGoblinGang` (camp circles, slow roaming, gang merging; flee/fight/hunt
+  chosen purely by living headcount).
 
 **Determinism:** `RLXoshiro.h` (xoshiro256++) is the gameplay RNG. Run seed is
 rolled once at embark; zone scatter and combat crits pull from seeded streams so
@@ -177,6 +182,10 @@ test steps rather than claiming a build passed.
 - **Excess mana:** physical magnetized orbs (`ARLManaOrbPickup`) burst from
   nodes and kills, totals scaled by the difficulty coefficient (elite ×2, boss
   ×4); altar boon prices scale to match. Tuning lives in `RLBalance`.
+- **Pack AI (vertical slice):** wolves (3-6, `ARLWolfPack`) and goblins (1-5,
+  `ARLGoblinGang`) spawn as coordinated groups; behavior tuning knobs are
+  UPROPERTYs on the group classes, pack size/cost on the spawn card rows.
+  Other enemy types still spawn as solo chase-and-strike loners.
 
 ## Working agreements (from prior sessions)
 

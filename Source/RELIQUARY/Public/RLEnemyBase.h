@@ -17,8 +17,19 @@ class UUserWidget;
 class UWidgetComponent;
 class URLDamageNumberWidget;
 class ARLEnemyBase;
+class ARLEnemyGroup;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRLEnemyKilledSignature, ARLEnemyBase*, Enemy, AActor*, Killer);
+
+/** Orders a coordinating group (wolf pack, goblin gang) pins on a member. */
+UENUM()
+enum class ERLGroupOrder : uint8
+{
+	None,		// stand still, no facing requirement
+	HoldFacing,	// stand still, turn toward OrderLocation
+	MoveTo,		// path to OrderLocation at the given speed scale
+	EngageHero	// the built-in chase-and-strike brain, aggro gate skipped
+};
 
 UCLASS()
 class RELIQUARY_API ARLEnemyBase : public ACharacter, public IAbilitySystemInterface
@@ -120,6 +131,33 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "RELIQUARY|Enemy")
 	FRLEnemyKilledSignature OnEnemyKilled;
 
+	// --- Group coordination (wolf packs, goblin gangs) ---
+
+	/**
+	 * The group steering this enemy. While set (and bChaseHero is on), the
+	 * solo brain is suspended and the enemy executes group orders instead.
+	 * Pass nullptr to release it back to the solo brain at attribute speed.
+	 */
+	void SetGroup(ARLEnemyGroup* InGroup);
+
+	ARLEnemyGroup* GetGroup() const { return Group; }
+
+	/** Latest order from the group; executed every Tick until replaced. */
+	void SetGroupOrder(ERLGroupOrder InOrder, const FVector& InLocation,
+		float InSpeedScale = 1.f, float InAcceptanceRadius = 100.f);
+
+	/** One immediate strike (montage hook + damage), bypassing the interval. */
+	void PerformTouchStrike(AActor* Target);
+
+	/** Unscaled MoveSpeed attribute — the base group speed scales multiply. */
+	float GetBaseMoveSpeed() const;
+
+	/** Touch-strike range measured from the actor center (AttackRange + capsule). */
+	float GetStrikeReach() const;
+
+	UFUNCTION(BlueprintPure, Category = "RELIQUARY|Enemy")
+	bool IsStunned() const;
+
 	/** Basic strike through the shared damage pipeline; call from AI/anim. */
 	UFUNCTION(BlueprintCallable, Category = "RELIQUARY|Enemy")
 	void DealTouchDamage(AActor* Target);
@@ -161,6 +199,28 @@ protected:
 	float RepathTimer = 0.f;
 	bool bNavMovement = false;
 	double StunnedUntilSeconds = 0.0;
+
+	// --- Group order state ---
+
+	UPROPERTY()
+	TObjectPtr<ARLEnemyGroup> Group;
+
+	ERLGroupOrder GroupOrder = ERLGroupOrder::None;
+	FVector GroupOrderLocation = FVector::ZeroVector;
+	float GroupOrderSpeedScale = 1.f;
+	float GroupOrderAcceptance = 100.f;
+
+	/** Runs the current group order for one frame. */
+	void ExecuteGroupOrder(float DeltaSeconds);
+
+	/** The classic brain: close in and strike on the interval. No aggro gate. */
+	void TickChaseAndStrike(APawn* Hero, float DeltaSeconds);
+
+	/** Nav path toward a point when a navmesh exists, beeline otherwise. */
+	void MoveTowardsLocation(const FVector& Target, float AcceptanceRadius, float DeltaSeconds);
+
+	void StopMoving();
+	void FaceLocation(const FVector& Target, float DeltaSeconds);
 
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamager;
