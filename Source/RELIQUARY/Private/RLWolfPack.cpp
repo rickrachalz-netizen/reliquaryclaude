@@ -54,6 +54,7 @@ void ARLWolfPack::EnterEncircle()
 	State = EPackState::Encircle;
 	Lunger = nullptr;
 	Interceptor = nullptr;
+	InvalidateRing();	// everyone converges from arbitrary spots — assign fresh
 	LungeElapsed = 0.f;
 	LoseHeroTimer = 0.f;
 	PursueScoreSeconds = 0.f;
@@ -125,7 +126,7 @@ void ARLWolfPack::OrderLoosePack(const TArray<ARLEnemyBase*>& Alive, const FVect
 		}
 
 		Wolf->SetGroupOrder(ERLGroupOrder::MoveTo, Center + Style.Offset * SpreadScale,
-			BaseSpeedScale * Style.SpeedJitter, 90.f);
+			BaseSpeedScale * Style.SpeedJitter, 40.f);
 	}
 }
 
@@ -263,11 +264,11 @@ void ARLWolfPack::TickEncircle(float DeltaSeconds, const TArray<ARLEnemyBase*>& 
 		OrbitFlipTimer = Rng.FRandRange(OrbitFlipSecondsMin, OrbitFlipSecondsMax);
 	}
 
-	// Everyone but the lunger pads sideways after a slot that sits ahead of
-	// them, so the ring perpetually circles; the lunger's gap closes itself.
+	// Everyone but the lunger pads sideways after slots that themselves orbit
+	// the hero, so circling is continuous; the lunger's gap closes itself.
 	ARLEnemyBase* CurrentLunger = Lunger.Get();
 	OrderRing(Alive, HeroLocation, CircleRadius, EncircleSpeedScale, SlotTolerance, CurrentLunger,
-		OrbitSign * OrbitLead, /*bHoldFacingAtSlot=*/false);
+		OrbitSign * OrbitSpeed * DeltaSeconds, /*bFaceCenterAtSlot=*/true);
 
 	// The pack darts more boldly once the ring has actually closed.
 	int32 RingCount = 0;

@@ -79,19 +79,34 @@ protected:
 	FVector ProjectPoint(const FVector& Point) const;
 
 	/**
-	 * Even ring of slots around Center, assigned by each member's current
-	 * bearing so nobody crosses anybody. Members already inside Tolerance of
-	 * their slot stand and face Center; the rest walk to it. Exclude skips one
-	 * member (a lunging wolf), and the remaining slots close the gap.
+	 * Even ring of slots around Center. Slot assignment is PERSISTENT: it is
+	 * derived from bearings once (so nobody crosses anybody) and then kept
+	 * until the roster actually changes — a death, a merge, or the excluded
+	 * member (a lunging wolf) switching. Stable slots are what keep members
+	 * from stuttering after goalposts recomputed every frame.
 	 *
-	 * PhaseLead offsets every slot around the ring (radians, signed): slots
-	 * sit perpetually ahead of the members chasing them, so the whole ring
-	 * orbits Center. Pass bHoldFacingAtSlot=false with a lead so members keep
-	 * padding sideways instead of stopping.
+	 * PhaseDeltaRadians rotates the whole ring by that much this tick (pass
+	 * OrbitSpeed * DeltaSeconds for a ring that circles Center). Members
+	 * idling on their slot turn toward Center when bFaceCenterAtSlot.
 	 */
 	void OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector& Center, float Radius,
 		float SpeedScale, float Tolerance, ARLEnemyBase* Exclude = nullptr,
-		float PhaseLead = 0.f, bool bHoldFacingAtSlot = true);
+		float PhaseDeltaRadians = 0.f, bool bFaceCenterAtSlot = true);
+
+	/** Current ring assignment (see OrderRing). */
+	TArray<TWeakObjectPtr<ARLEnemyBase>> RingMembers;
+	TWeakObjectPtr<ARLEnemyBase> RingExclude;
+	float RingPhase = 0.f;
+
+	bool RingMatches(const TArray<ARLEnemyBase*>& Alive, ARLEnemyBase* Exclude) const;
+	void AssignRing(const TArray<ARLEnemyBase*>& Alive, const FVector& Center, ARLEnemyBase* Exclude);
+
+	/** Call on state changes that displace everyone; the next ring reassigns fresh. */
+	void InvalidateRing()
+	{
+		RingMembers.Reset();
+		RingExclude = nullptr;
+	}
 
 	void PruneMembers();
 };

@@ -122,6 +122,10 @@ protected:
 	/** Where the runner last saw the hero — handed to the gang it joins. */
 	FVector LastKnownHeroLocation = FVector::ZeroVector;
 
+	/** Escape decisions are rate-limited so the runner commits to a line. */
+	float FleeRepathTimer = 0.f;
+	FVector FleeEscapePoint = FVector::ZeroVector;
+
 	void EnterCircle(bool bReanchor);
 	void EnterRoam(int32 AliveCount);
 	void EnterFight();
@@ -137,10 +141,23 @@ protected:
 	void TickCalm(float DeltaSeconds, const TArray<ARLEnemyBase*>& Alive, bool bThreatened);
 	void TickFight(const TArray<ARLEnemyBase*>& Alive);
 	void TickHunt(const TArray<ARLEnemyBase*>& Alive);
-	void TickFlee(const TArray<ARLEnemyBase*>& Alive);
+	void TickFlee(float DeltaSeconds, const TArray<ARLEnemyBase*>& Alive);
 
-	/** Nearest other gang with survivors within MaxRange, else nullptr. */
-	ARLGoblinGang* FindNearestGang(float MaxRange, float& OutDistance) const;
+	/**
+	 * Nearest other gang with survivors within MaxRange, else nullptr.
+	 * AvoidLocation/AvoidRadius skip gangs camped near a danger point (used
+	 * so seekers don't pick a refuge that sits on top of the hero).
+	 */
+	ARLGoblinGang* FindNearestGang(float MaxRange, float& OutDistance,
+		const FVector* AvoidLocation = nullptr, float AvoidRadius = 0.f) const;
+
+	/**
+	 * Travel legs must not walk back through the hero — the old ping-pong:
+	 * flee out, wander straight back in, flee again. If the straight run to
+	 * Target passes near the hero (or ends near them), the leg is bent away
+	 * to the side until it clears; hopeless cases turn dead away instead.
+	 */
+	FVector BendTargetAroundHero(const FVector& From, const FVector& Target) const;
 
 	/** Absorbs every survivor of Consumed into this gang, then destroys it. */
 	void AbsorbGang(ARLGoblinGang* Consumed);

@@ -150,8 +150,38 @@ FVector ARLEnemyGroup::PickWanderPoint(const FVector& Origin, float MinRange, fl
 	return ProjectPoint(Origin + FVector(FMath::Cos(Angle) * Range, FMath::Sin(Angle) * Range, 0.f));
 }
 
-void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector& Center, float Radius,
-	float SpeedScale, float Tolerance, ARLEnemyBase* Exclude, float PhaseLead, bool bHoldFacingAtSlot)
+bool ARLEnemyGroup::RingMatches(const TArray<ARLEnemyBase*>& Alive, ARLEnemyBase* Exclude) const
+{
+	if (RingExclude.Get() != Exclude)
+	{
+		return false;
+	}
+
+	int32 Expected = 0;
+	for (ARLEnemyBase* Member : Alive)
+	{
+		if (Member != Exclude)
+		{
+			++Expected;
+		}
+	}
+	if (RingMembers.Num() != Expected)
+	{
+		return false;
+	}
+
+	for (const TWeakObjectPtr<ARLEnemyBase>& Weak : RingMembers)
+	{
+		ARLEnemyBase* Member = Weak.Get();
+		if (!Member || Member->IsDead() || Member == Exclude || !Alive.Contains(Member))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void ARLEnemyGroup::AssignRing(const TArray<ARLEnemyBase*>& Alive, const FVector& Center, ARLEnemyBase* Exclude)
 {
 	struct FRingEntry
 	{
@@ -159,6 +189,8 @@ void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector&
 		float Bearing;
 	};
 
+	// Assign by current bearing so the fresh layout shuffles nobody, then keep
+	// the assignment until the roster changes again.
 	TArray<FRingEntry> Ring;
 	Ring.Reserve(Alive.Num());
 	for (ARLEnemyBase* Member : Alive)
@@ -170,36 +202,53 @@ void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector&
 		const FVector To = Member->GetActorLocation() - Center;
 		Ring.Add({ Member, static_cast<float>(FMath::Atan2(To.Y, To.X)) });
 	}
-	if (Ring.Num() == 0)
+	Ring.Sort([](const FRingEntry& A, const FRingEntry& B) { return A.Bearing < B.Bearing; });
+
+	RingMembers.Reset(Ring.Num());
+	for (const FRingEntry& Entry : Ring)
+	{
+		RingMembers.Add(Entry.Member);
+	}
+	RingExclude = Exclude;
+	RingPhase = Ring.Num() > 0 ? Ring[0].Bearing : 0.f;
+}
+
+void ARLEnemyGroup::OrderRing(const TArray<ARLEnemyBase*>& Alive, const FVector& Center, float Radius,
+	float SpeedScale, float Tolerance, ARLEnemyBase* Exclude, float PhaseDeltaRadians, bool bFaceCenterAtSlot)
+{
+	if (!RingMatches(Alive, Exclude))
+	{
+		AssignRing(Alive, Center, Exclude);
+	}
+	if (RingMembers.Num() == 0)
 	{
 		return;
 	}
-	Ring.Sort([](const FRingEntry& A, const FRingEntry& B) { return A.Bearing < B.Bearing; });
 
-	// Anchor the wheel on the first member's current bearing so slots shift as
-	// little as possible from wherever everyone already stands.
-	const float Phase = Ring[0].Bearing + PhaseLead;
-	const float Step = 2.f * PI / Ring.Num();
-	for (int32 i = 0; i < Ring.Num(); ++i)
+	RingPhase += PhaseDeltaRadians;
+
+	const float Step = 2.f * PI / RingMembers.Num();
+	for (int32 i = 0; i < RingMembers.Num(); ++i)
 	{
-		const float SlotAngle = Phase + Step * i;
+		ARLEnemyBase* Member = RingMembers[i].Get();
+		if (!Member)
+		{
+			continue;
+		}
+
+		const float SlotAngle = RingPhase + Step * i;
 		const FVector Slot = Center +
 			FVector(FMath::Cos(SlotAngle) * Radius, FMath::Sin(SlotAngle) * Radius, 0.f);
 
-		if (!bHoldFacingAtSlot || FVector::Dist2D(Ring[i].Member->GetActorLocation(), Slot) > Tolerance)
-		{
-			const float Acceptance = bHoldFacingAtSlot ? Tolerance * 0.6f : 50.f;
-			Ring[i].Member->SetGroupOrder(ERLGroupOrder::MoveTo, Slot, SpeedScale, Acceptance);
-		}
-		else
-		{
-			Ring[i].Member->SetGroupOrder(ERLGroupOrder::HoldFacing, Center, SpeedScale, Tolerance);
-		}
+		// The member's own move/stop latch handles arrival and idling; idle
+		// members turn toward the ring's center when asked to.
+		Member->SetGroupOrder(ERLGroupOrder::MoveTo, Slot, SpeedScale, Tolerance * 0.6f,
+			bFaceCenterAtSlot ? Center : FVector::ZeroVector);
 
 		if (bDrawDebug)
 		{
 			DrawDebugSphere(GetWorld(), Slot, 25.f, 8, FColor::Cyan, false, -1.f, 0, 1.5f);
-			DrawDebugLine(GetWorld(), Ring[i].Member->GetActorLocation(), Slot, FColor::Cyan, false, -1.f, 0, 1.f);
+			DrawDebugLine(GetWorld(), Member->GetActorLocation(), Slot, FColor::Cyan, false, -1.f, 0, 1.f);
 		}
 	}
 }

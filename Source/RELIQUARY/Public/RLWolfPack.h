@@ -39,21 +39,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|WolfPack")
 	float CircleRadius = 520.f;
 
-	/** Slot slack before a wolf strafes back into position. */
+	/** Arrival slack on the orbiting slot — small keeps the circling continuous. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|WolfPack")
-	float SlotTolerance = 150.f;
+	float SlotTolerance = 50.f;
 
 	/** Speed (× MoveSpeed) while circling — above 1 so the ring tracks the hero. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|WolfPack")
 	float EncircleSpeedScale = 1.25f;
 
 	/**
-	 * How far ahead of each wolf its ring slot sits (radians). The wolves
-	 * chase slots they never quite catch, so the whole ring slowly orbits
-	 * the hero; the orbit direction flips now and then.
+	 * How fast the ring rotates around the hero (radians/second): the slots
+	 * themselves orbit and the wolves pad sideways after them, so circling is
+	 * continuous. The direction flips now and then.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|WolfPack")
-	float OrbitLead = 0.35f;
+	float OrbitSpeed = 0.45f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RELIQUARY|WolfPack")
 	float OrbitFlipSecondsMin = 6.f;

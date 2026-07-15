@@ -142,9 +142,14 @@ public:
 
 	ARLEnemyGroup* GetGroup() const { return Group; }
 
-	/** Latest order from the group; executed every Tick until replaced. */
+	/**
+	 * Latest order from the group; executed every Tick until replaced.
+	 * FaceLocation (optional, ZeroVector = none): where to turn while idling
+	 * inside a MoveTo order's acceptance ring (goblins face their circle).
+	 */
 	void SetGroupOrder(ERLGroupOrder InOrder, const FVector& InLocation,
-		float InSpeedScale = 1.f, float InAcceptanceRadius = 100.f);
+		float InSpeedScale = 1.f, float InAcceptanceRadius = 100.f,
+		const FVector& InFaceLocation = FVector::ZeroVector);
 
 	/** One immediate strike (montage hook + damage), bypassing the interval. */
 	void PerformTouchStrike(AActor* Target);
@@ -207,8 +212,18 @@ protected:
 
 	ERLGroupOrder GroupOrder = ERLGroupOrder::None;
 	FVector GroupOrderLocation = FVector::ZeroVector;
+	FVector GroupOrderFace = FVector::ZeroVector;
 	float GroupOrderSpeedScale = 1.f;
 	float GroupOrderAcceptance = 100.f;
+
+	/**
+	 * Anti-stutter latches. Movement decisions brake the character every time
+	 * they flip, so both boundaries are sticky: a MoveTo order stops inside
+	 * its acceptance ring but only resumes well outside it, and melee holds
+	 * on to the target slightly beyond the reach that first captured it.
+	 */
+	bool bOrderMoving = false;
+	bool bInMeleeHold = false;
 
 	/** Runs the current group order for one frame. */
 	void ExecuteGroupOrder(float DeltaSeconds);

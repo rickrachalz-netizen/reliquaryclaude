@@ -14,6 +14,8 @@
 #include "RLManaOrbPickup.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AIController.h"
+#include "DetourCrowdAIController.h"
+#include "Navigation/CrowdFollowingComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -27,8 +29,10 @@ ARLEnemyBase::ARLEnemyBase()
 
 	// Spawned enemies possess themselves; without a controller the movement
 	// component never simulates, leaving them frozen in the air.
+	// DetourCrowd path following makes converging enemies flow around each
+	// other instead of shoving into a slow-motion scrum.
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	AIControllerClass = AAIController::StaticClass();
+	AIControllerClass = ADetourCrowdAIController::StaticClass();
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 480.f, 0.f);
@@ -118,10 +122,16 @@ void ARLEnemyBase::BeginPlay()
 	AbilitySystemComponent->OnDamageTaken.AddDynamic(this, &ARLEnemyBase::HandleDamageTaken);
 	AbilitySystemComponent->OnDeath.AddDynamic(this, &ARLEnemyBase::HandleDeath);
 
-	// Melee mobs converge on the same point; RVO keeps bodies sliding around
-	// each other instead of grinding to a crawl in a shoving match.
-	GetCharacterMovement()->SetAvoidanceEnabled(true);
-	GetCharacterMovement()->AvoidanceConsiderationRadius = 220.f;
+	// Gentle crowd separation keeps clumped bodies from stacking; DetourCrowd
+	// (the controller's path following) does the actual mutual avoidance.
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		if (UCrowdFollowingComponent* Crowd = Cast<UCrowdFollowingComponent>(AI->GetPathFollowingComponent()))
+		{
+			Crowd->SetCrowdSeparation(true);
+			Crowd->SetCrowdSeparationWeight(2.f);
+		}
+	}
 
 	StuckCheckOrigin = GetActorLocation();
 }
@@ -167,7 +177,12 @@ void ARLEnemyBase::TickChaseAndStrike(APawn* Hero, float DeltaSeconds)
 	TimeSinceAttack += DeltaSeconds;
 
 	const float Distance = FVector::Dist(GetActorLocation(), Hero->GetActorLocation());
-	if (Distance <= GetStrikeReach())
+	const float Reach = GetStrikeReach();
+
+	// Sticky melee: captured at reach, released only clearly beyond it — a
+	// strafing hero on the boundary can't make the chaser stop/start-stutter.
+	bInMeleeHold = bInMeleeHold ? (Distance <= Reach * 1.15f) : (Distance <= Reach);
+	if (bInMeleeHold)
 	{
 		StopMoving();
 
@@ -214,8 +229,11 @@ void ARLEnemyBase::MoveTowardsLocation(const FVector& Target, float AcceptanceRa
 	if (AI && RepathTimer <= 0.f)
 	{
 		RepathTimer = 0.35f;
+		// bStopOnOverlap=false: location moves use the EXACT acceptance radius.
+		// Capsule-inflated arrival would finish paths outside the caller's
+		// stop ring and leave the pawn micro-stepping after drifting targets.
 		const EPathFollowingRequestResult::Type Result = AI->MoveToLocation(
-			Target, AcceptanceRadius, /*bStopOnOverlap=*/true, /*bUsePathfinding=*/true,
+			Target, AcceptanceRadius, /*bStopOnOverlap=*/false, /*bUsePathfinding=*/true,
 			/*bProjectDestinationToNavigation=*/true);
 		bNavMovement = Result != EPathFollowingRequestResult::Failed;
 	}
@@ -299,20 +317,22 @@ void ARLEnemyBase::SetGroup(ARLEnemyGroup* InGroup)
 }
 
 void ARLEnemyBase::SetGroupOrder(ERLGroupOrder InOrder, const FVector& InLocation,
-	float InSpeedScale, float InAcceptanceRadius)
+	float InSpeedScale, float InAcceptanceRadius, const FVector& InFaceLocation)
 {
 	if (GroupOrder != InOrder)
 	{
 		// Leaving a movement order: kill the active path request once, and let
-		// a fresh movement order repath immediately.
+		// a fresh movement order repath immediately and act on it.
 		if (GroupOrder == ERLGroupOrder::MoveTo || GroupOrder == ERLGroupOrder::EngageHero)
 		{
 			StopMoving();
 		}
 		RepathTimer = 0.f;
+		bOrderMoving = true;
 	}
 	GroupOrder = InOrder;
 	GroupOrderLocation = InLocation;
+	GroupOrderFace = InFaceLocation;
 	GroupOrderSpeedScale = InSpeedScale;
 	GroupOrderAcceptance = InAcceptanceRadius;
 }
@@ -330,15 +350,31 @@ void ARLEnemyBase::ExecuteGroupOrder(float DeltaSeconds)
 		break;
 
 	case ERLGroupOrder::MoveTo:
-		if (FVector::Dist2D(GetActorLocation(), GroupOrderLocation) > GroupOrderAcceptance)
+	{
+		// Latched: stop inside the acceptance ring, resume only well outside
+		// it. A single boundary here made drifting targets toggle move/stop
+		// every few frames — each toggle brakes, and braking is the molasses.
+		const float Distance = FVector::Dist2D(GetActorLocation(), GroupOrderLocation);
+		if (bOrderMoving && Distance <= GroupOrderAcceptance)
+		{
+			StopMoving();
+			bOrderMoving = false;
+		}
+		else if (!bOrderMoving && Distance > GroupOrderAcceptance * 1.8f)
+		{
+			bOrderMoving = true;
+		}
+
+		if (bOrderMoving)
 		{
 			MoveTowardsLocation(GroupOrderLocation, GroupOrderAcceptance * 0.5f, DeltaSeconds);
 		}
-		else if (bNavMovement)
+		else if (!GroupOrderFace.IsNearlyZero())
 		{
-			StopMoving();
+			FaceLocation(GroupOrderFace, DeltaSeconds);
 		}
 		break;
+	}
 
 	case ERLGroupOrder::EngageHero:
 		if (APawn* Hero = UGameplayStatics::GetPlayerPawn(this, 0))
