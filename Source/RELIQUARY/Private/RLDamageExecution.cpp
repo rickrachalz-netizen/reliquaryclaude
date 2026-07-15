@@ -66,6 +66,13 @@ void URLDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecu
 		return;
 	}
 
+	// Parrying targets turn every attack aside ("All in!"). Kept distinct from
+	// Invulnerable so a future unparryable/magic damage type can pierce it.
+	if (EvalParams.TargetTags && EvalParams.TargetTags->HasTag(RLTags::State_Parry))
+	{
+		return;
+	}
+
 	float BaseDamage = Spec.GetSetByCallerMagnitude(RLTags::SetByCaller_Damage, /*WarnIfNotFound=*/false, 0.f);
 	if (BaseDamage <= 0.f)
 	{
